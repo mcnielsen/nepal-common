@@ -2,8 +2,8 @@
   "compilerOptions": {
     "baseUrl": "",
     "paths": {
-        "@al/haversack": [ "./src" ],
-        "@al/haversack/*": [ "./src/*" ]
+        "@al/common": [ "./src" ],
+        "@al/common/*": [ "./src/*" ]
     },
     "outDir": "./dist/commonjs",
     "module": "commonjs",
