@@ -13,5 +13,6 @@ export {
     AlTriggeredEvent,
     AlTriggeredEventCallback,
     AlTriggerSubscription,
-    AlTriggerStream
+    AlTriggerStream,
+    AlSubscriptionGroup
 } from './utility/al-trigger.types';
