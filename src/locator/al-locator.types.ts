@@ -89,7 +89,10 @@ export class AlLocation
                 locTypeId: locTypeId,
                 environment: 'integration',
                 uri: `https://console.${appCode}.product.dev.alertlogic.com`,
-                aliases: [ `https://${appCode}-pr-*.ui-dev.product.dev.alertlogic.com` ]
+                aliases: [
+                    `https://${appCode}-pr-*.ui-dev.product.dev.alertlogic.com`,
+                    `https://*.o3-${appCode}.product.dev.alertlogic.com`
+                ]
             },
             {
                 locTypeId: locTypeId,
