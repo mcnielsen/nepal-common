@@ -17,7 +17,7 @@ export class AlGlobalizer
      */
     public static expose( name:string, data:{[key:string]:any} = {} ) {
         let pathParts = name.split(".");
-        let target = <any>window;
+        let target = typeof( window ) === 'undefined' ? AlGlobalizer.prototype : <any>window;
         for ( let i = 0; i < pathParts.length; i++ ) {
             let pathPart = pathParts[i];
             if ( typeof( target[pathPart] ) !== 'object' ) {
