@@ -155,7 +155,7 @@ export class AlLocatorMatrix
     protected actingUri:string = null;
     protected actor:AlLocationDescriptor = null;
 
-    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
+    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor,overrideLocationURI?:boolean}} = {};
     protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
     protected _nodeMap:{[hashKey:string]:AlLocationDescriptor} = {};
 
@@ -330,8 +330,14 @@ export class AlLocatorMatrix
      */
     public getNodeByURI( targetURI:string ):AlLocationDescriptor {
         for ( let k in this.uriMap ) {
-            if ( this.uriMap[k].matcher.test( targetURI ) ) {
-                return this.uriMap[k].location;
+            const mapping = this.uriMap[k];
+            if ( mapping.matcher.test( targetURI ) ) {
+                if ( mapping.overrideLocationURI ) {
+                    //  This is used to force the locator matrix to bind to an alias instead of the 'canonical' URL of a given location.
+                    console.log(`Notice: using [${targetURI}] as a base URI for location type '${mapping.location.locTypeId}'`);
+                    return Object.assign( {}, mapping.location, { uri: this.getBaseUrl( targetURI ) } ) as AlLocationDescriptor;
+                }
+                return mapping.location;
             }
         }
         return null;
@@ -400,7 +406,7 @@ export class AlLocatorMatrix
         if ( node.aliases ) {
             node.aliases.map( alias => {
                 pattern = this.escapeLocationPattern( alias );
-                this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node };
+                this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node, overrideLocationURI: true };
             } );
         }
     }
@@ -415,6 +421,23 @@ export class AlLocatorMatrix
         pattern = pattern.replace( /\*/, "[a-zA-Z0-9_]+" );                 //  convert * wildcard into group match with 1 or more characters
         pattern += ".*$";                                                   //  add filler and terminus anchor
         return pattern;
+    }
+
+    /**
+     * Chops off fragments, query strings, and any trailing slashes, and returns what *should* be just the base URL.
+     * I make no promises about the quality of this code when confronted with incorrect or incomplete inputs.
+     */
+    getBaseUrl( uri:string ):string {
+        if ( uri.indexOf("#") !== -1 ) {
+            uri = uri.substring( 0, uri.indexOf("#") );
+        }
+        if ( uri.indexOf("?") !== -1 ) {
+            uri = uri.substring( 0, uri.indexOf("?" ) );
+        }
+        if ( uri.length > 0 && uri[uri.length-1] === '/' ) {
+            uri = uri.substring( 0, uri.length - 1 );
+        }
+        return uri;
     }
 
     /**

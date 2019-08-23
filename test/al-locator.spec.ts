@@ -29,9 +29,9 @@ describe( 'AlLocatorMatrix', () => {
             environment: 'production'
         }
     ];
-    let locator:AlLocatorMatrix;
 
     describe( 'utility methods', () => {
+        let locator:AlLocatorMatrix;
         beforeEach( () => {
             locator = new AlLocatorMatrix(  nodes,
                                             "https://console.incidents.product.dev.alertlogic.com/#/summary/2?aaid=2&locid=defender-us-denver",
@@ -52,11 +52,15 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.residency ).to.equal( "EMEA" );
             expect( node.locTypeId ).to.equal( AlLocation.OverviewUI );
 
-            node = locator.getNodeByURI( "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport" );
+            //  Make sure that aliased nodes work, and return a node with the URI pointing to themselves
+            const aliasNodeURL = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
+            const aliasNodeBase = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com";
+            node = locator.getNodeByURI( aliasNodeURL );
             expect( node ).to.be.an( "object" );
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
+            expect( node.uri ).to.equal( aliasNodeBase );
         } );
 
         it( "should propertly identify the acting node from the acting URL passed to the constructor", () => {
@@ -100,7 +104,7 @@ describe( 'AlLocatorMatrix', () => {
     } );
 
     describe( 'given production-like location descriptors for the overview application', () => {
-
+        let locator:AlLocatorMatrix;
         beforeEach( () => {
             locator = new AlLocatorMatrix();
         } );
