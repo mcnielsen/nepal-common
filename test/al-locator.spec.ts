@@ -60,7 +60,7 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
-            expect( node.uri ).to.equal( aliasNodeBase );
+            expect( node._fullURI ).to.equal( aliasNodeBase );
         } );
 
         it( "should propertly identify the acting node from the acting URL passed to the constructor", () => {

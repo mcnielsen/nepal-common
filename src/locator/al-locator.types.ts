@@ -155,7 +155,7 @@ export class AlLocatorMatrix
     protected actingUri:string = null;
     protected actor:AlLocationDescriptor = null;
 
-    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor,overrideLocationURI?:boolean}} = {};
+    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
     protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
     protected _nodeMap:{[hashKey:string]:AlLocationDescriptor} = {};
 
@@ -332,10 +332,10 @@ export class AlLocatorMatrix
         for ( let k in this.uriMap ) {
             const mapping = this.uriMap[k];
             if ( mapping.matcher.test( targetURI ) ) {
-                if ( mapping.overrideLocationURI ) {
-                    //  This is used to force the locator matrix to bind to an alias instead of the 'canonical' URL of a given location.
-                    console.log(`Notice: using [${targetURI}] as a base URI for location type '${mapping.location.locTypeId}'`);
-                    return Object.assign( {}, mapping.location, { uri: this.getBaseUrl( targetURI ) } ) as AlLocationDescriptor;
+                let baseUrl = this.getBaseUrl( targetURI );
+                if ( baseUrl !== mapping.location.uri ) {
+                    mapping.location._fullURI = baseUrl;     // Use this specific base URL for resolving other links to this application type
+                    console.log(`Notice: using [${baseUrl}] as a base URI for location type '${mapping.location.locTypeId}'`);
                 }
                 return mapping.location;
             }
@@ -406,7 +406,7 @@ export class AlLocatorMatrix
         if ( node.aliases ) {
             node.aliases.map( alias => {
                 pattern = this.escapeLocationPattern( alias );
-                this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node, overrideLocationURI: true };
+                this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node };
             } );
         }
     }
