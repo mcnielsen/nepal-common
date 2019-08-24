@@ -304,7 +304,7 @@ export class AlRoute {
             return false;
         }
 
-        this.baseHREF = node.uri;
+        this.baseHREF = AlLocatorService.resolveNodeURI( node );
         let path = action.path ? action.path : '';
         let missing = false;
         path = path.replace( /\:[a-zA-Z_]+/g, match => {
