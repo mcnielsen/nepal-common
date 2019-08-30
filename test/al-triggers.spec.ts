@@ -4,7 +4,7 @@ import { AlTriggerStream, AlTriggeredEvent } from '../src';
 
 class EventType1 extends AlTriggeredEvent
 {
-    constructor() {
+    constructor( public eventProperty:string = "default" ) {
         super( "EventType1");
     }
 }
@@ -103,5 +103,42 @@ describe( 'AlTriggerStream', () => {
         subscription2.cancel();
     } );
 
+    it("should respect pause, resume, and filter on subscriptions", () => {
+        const stream = new AlTriggerStream();
+
+        const subscription = stream.attach( "EventType1", ( event ) => {
+            event.respond( true );
+            handlerCallCount++;
+        } );
+
+        stream.trigger( new EventType1() );   //  This should be received
+
+        subscription.pause();
+
+        stream.trigger( new EventType1() );   //  This should NOT be received
+
+        subscription.resume();
+
+        stream.trigger( new EventType1() );   //  This should be received again
+
+        expect( handlerCallCount ).to.equal( 2 );
+
+        subscription.filter( ( event:EventType1 ) => event.eventProperty === 'good' );
+
+        stream.trigger( new EventType1( "good" ) );   //  This should be received because it matches the filter
+
+        expect( handlerCallCount ).to.equal( 3 );
+
+        stream.trigger( new EventType1( "bad" ) );   //  This should NOT be received because it does not match the filter
+
+        expect( handlerCallCount ).to.equal( 3 );
+
+        subscription.cancel();
+
+        stream.trigger( new EventType1( "good" ) );   //  This should NOT be received because we are no longer subscribed
+
+        expect( handlerCallCount ).to.equal( 3 );
+
+    } );
 
 } );

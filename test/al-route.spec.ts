@@ -32,17 +32,17 @@ describe( 'AlRoute', () => {
             }
             return false;
         },
-        routeParameters: {
-            accountId: "2",
-            deploymentId: "1234ABCD-1234-ABCD1234"
-        },
+        routeParameters: {},
         setRouteParameter: (parameter:string, value:string) => {
-            this.routeParameters[parameter] = value;
         },
         deleteRouteParameter: (parameter:string) => {
-            delete this.routeParameters[parameter];
         }
     };
+
+    beforeEach( () => {
+        routingHost.routeParameters["accountId"] = "2";
+        routingHost.routeParameters["deploymentId"] = "1234ABCD-1234-ABCD1234";
+    } );
 
     describe( 'basic functionality', () => {
         it("should allow getting and setting of properties", () => {
@@ -93,6 +93,52 @@ describe( 'AlRoute', () => {
             expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
             expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/remediations-scan-status/2" );
             expect( menu.visible ).to.equal( true );
+        } );
+        it( 'should evaluate optional route parameters in HREFs properly', () => {
+
+            routingHost.routeParameters["accountId"] = "12345678";
+            routingHost.routeParameters["userId"] = "ABCDEFGH";
+            routingHost.routeParameters["deploymentId"] = "XXXX-YYYY-ZZZZZZZZ-1234";
+
+            const menu = new AlRoute( routingHost, {
+                caption: "Test Route",
+                action: {
+                    type: 'link',
+                    location: AlLocation.OverviewUI,
+                    path: '/#/path/to/:accountId/:userId?/:deploymentId?'
+                },
+                properties: {}
+            } );
+
+            menu.refresh();
+
+            expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
+            expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/to/12345678/ABCDEFGH/XXXX-YYYY-ZZZZZZZZ-1234" );
+            expect( menu.visible ).to.equal( true );
+
+            //  Delete the optional deploymentId parameter
+            delete routingHost.routeParameters["deploymentId"];
+            menu.refresh( true );
+
+            expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
+            expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/to/12345678/ABCDEFGH" );
+            expect( menu.visible ).to.equal( true );
+
+            //  Delete the optional userId parameter
+            delete routingHost.routeParameters["userId"];
+            menu.refresh( true );
+
+            expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
+            expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/to/12345678" );
+            expect( menu.visible ).to.equal( true );
+
+            //  Delete the required accountId parameter
+            delete routingHost.routeParameters["accountId"];
+            menu.refresh( true );
+
+            expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
+            expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/to/:accountId" );
+            expect( menu.visible ).to.equal( false );
         } );
         it( 'should handle invalid route HREFs properly', () => {
             const menu = new AlRoute( routingHost, {
@@ -175,6 +221,7 @@ describe( 'AlRoute', () => {
             properties: {}
         };
         const child3:AlRouteDefinition = {
+            id: 'child3',
             caption: "Child 3",
             visible: {
                 rule: 'all',
@@ -189,13 +236,25 @@ describe( 'AlRoute', () => {
                 location: AlLocation.IncidentsUI,
                 path: '/#/child-route-3'
             },
-            properties: {}
+            properties: {},
+            children: [
+                {
+                    id: "grandchild",
+                    caption: "Third Level Item",
+                    action: {
+                        type: "link",
+                        location: AlLocation.IncidentsUI,
+                        path: '/#/child-route-3/grandchild'
+                    }
+                }
+            ]
         };
 
         const menuDefinition:AlRouteDefinition = {
             caption: "Test Menu",
             children: [
                 {
+                    id: 'overview',
                     caption: "Overview",
                     action: {
                         type: "link",
@@ -258,6 +317,19 @@ describe( 'AlRoute', () => {
             expect( menu.children[0].activated ).to.equal( true );
             expect( menu.activated ).to.equal( true );
 
+        } );
+
+        it( "should allow retrieval of items by ID and name", () => {
+            const menu:AlRoute = new AlRoute( routingHost, menuDefinition );
+
+            let grandchild1 = menu.findChild( "overview/child3/grandchild" );        //  Look up matching IDs
+            let grandchild2 = menu.findChild( "overview/Child 3/Third Level Item" );       //  Look up matching captions
+
+            expect( grandchild1 ).to.be.an( 'object' );
+            expect( grandchild1 ).to.equal( grandchild2 );                  //  Should be the same
+
+            let nonexistant = menu.findChild( "overview/Child 2/Does Not Exist" );
+            expect( nonexistant ).to.equal( null );
         } );
     } );
 
