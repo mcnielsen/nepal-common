@@ -56,20 +56,53 @@ export class AlTriggeredEvent
     }
 }
 
-export declare type AlTriggeredEventCallback = {(event:AlTriggeredEvent,subscriptionId?:string):void};
+export declare type AlTriggeredEventCallback = {(event:AlTriggeredEvent):void|boolean};
 
 export class AlTriggerSubscription
 {
-    constructor( public stream:AlTriggerStream, public listenerId:string ) {}
+    protected active = true;
+    protected filterCb:AlTriggeredEventCallback = null;
+
+    constructor( public stream:AlTriggerStream,
+                 public eventType:string,
+                 public listenerId:string,
+                 public triggerCallback:AlTriggeredEventCallback = null ) {
+    }
+
+    then( cb:AlTriggeredEventCallback ):AlTriggerSubscription {
+        this.triggerCallback = cb;
+        return this;
+    }
+
+    filter( cb:AlTriggeredEventCallback ):AlTriggerSubscription {
+        this.filterCb = cb;
+        return this;
+    }
+
+    trigger( event:AlTriggeredEvent ) {
+        if ( this.active && this.triggerCallback ) {
+            if ( this.filterCb === null || this.filterCb( event ) ) {
+                this.triggerCallback( event );
+            }
+        }
+    }
+
+    pause() {
+        this.active = false;
+    }
+
+    resume() {
+        this.active = true;
+    }
 
     cancel() {
-        this.stream.detach( this.listenerId );
+        this.stream.detach( this );
     }
 }
 
 export class AlTriggerStream
 {
-    items:{[triggerType:string]:{[subscriptionId:string]:AlTriggeredEventCallback}} = {};
+    items:{[triggerType:string]:{[subscriptionId:string]:AlTriggerSubscription}} = {};
     subscriptionCount:number        =   0;
     downstream:AlTriggerStream      =   null;
     flowing:boolean                 =   false;
@@ -86,25 +119,20 @@ export class AlTriggerStream
         return this.items[eventTypeName];
     }
 
-    public attach( eventType:string, callback:AlTriggeredEventCallback, subscriptionGroup?:AlSubscriptionGroup ):AlTriggerSubscription {
-        let bucket = this.getBucket( eventType );
+    public attach( eventType:string, callback?:AlTriggeredEventCallback, subscriptionGroup?:AlSubscriptionGroup ):AlTriggerSubscription {
         const listenerId:string = `sub_${++this.subscriptionCount}`;
-        bucket[listenerId] = callback;
-        let subscription = new AlTriggerSubscription( this, listenerId );
+        const bucket = this.getBucket( eventType );
+        const subscription = new AlTriggerSubscription( this, eventType, listenerId, callback );
+        bucket[listenerId] = subscription;
         if ( subscriptionGroup ) {
             subscriptionGroup.manage( subscription );
         }
         return subscription;
     }
 
-    public detach( listenerId:string ) {
-        for ( let typeName in this.items ) {
-            if ( this.items.hasOwnProperty( typeName ) ) {
-                if ( this.items[typeName].hasOwnProperty( listenerId ) ) {
-                    delete this.items[typeName][listenerId];
-                    return;
-                }
-            }
+    public detach( subscription:AlTriggerSubscription ) {
+        if ( this.items.hasOwnProperty( subscription.eventType ) && this.items[subscription.eventType].hasOwnProperty( subscription.listenerId ) ) {
+            delete this.items[subscription.eventType][subscription.listenerId];
         }
     }
 
@@ -123,7 +151,8 @@ export class AlTriggerStream
         let listenerIdList = Object.keys( bucket );
         listenerIdList.forEach( listenerId => {
             try {
-                bucket[listenerId]( event, listenerId );
+                const subscription = bucket[listenerId];
+                subscription.trigger( event );
             } catch( e ) {
                 console.warn(`Trigger callback for event ${event.constructor.name} throw exception: ${e.message}; ignoring.` );
             }
