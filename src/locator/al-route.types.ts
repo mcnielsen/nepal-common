@@ -24,6 +24,10 @@ export interface AlRoutingHost
     setRouteParameter( parameter:string, value:string ):void;
     deleteRouteParameter( parameter:string ):void;
 
+    /* Bookmarks */
+    setBookmark( bookmarkId:string, route:AlRoute );
+    getBookmark( bookmarkId:string ):AlRoute;
+
     /* Asks the host to execute a given route's action. */
     dispatch(route:AlRoute, params?:{[param:string]:string}):void;
 
@@ -39,11 +43,18 @@ export interface AlRoutingHost
 export const AlNullRoutingHost = {
     currentUrl: '',
     routeParameters: {},
+    bookmarks: {},
     setRouteParameter: ( parameter:string, value:string ) => {
         this.routeParameters[parameter] = value;
     },
     deleteRouteParameter: ( parameter:string ) => {
         delete this.routeParameters[parameter];
+    },
+    setBookmark: ( bookmarkId:string, route:AlRoute ) => {
+        this.bookmarks[bookmarkId] = route;
+    },
+    getBookmark: ( bookmarkId:string ) => {
+        return this.bookmarks[bookmarkId];
     },
     dispatch: (route:AlRoute) => {},
     evaluate: (condition:AlRouteCondition) => false
@@ -68,7 +79,7 @@ export interface AlRouteCondition
 export interface AlRouteAction
 {
     /**
-     *  What type of action does this route have?  Valid types are 'link' and 'trigger'.
+     *  What type of action does this route have?  Valid types are 'link', 'trigger', and 'callback'
      */
     type:string;
 
@@ -84,6 +95,11 @@ export interface AlRouteAction
      * If the type of the action is 'trigger', this is the name of the event to be triggered.
      */
     trigger?:string;
+
+    /**
+     * If the type of the action is 'callback', this is the anonymous function that will be executed.
+     */
+    callback?:{(route:AlRoute,mouseEvent?:any):void};
 }
 
 /**
@@ -93,6 +109,12 @@ export interface AlRouteDefinition {
 
     /* The caption of the menu item */
     caption:string;
+
+    /* An arbitrary id associated with this menu item.  This is most useful (practically) for retrieving specific menu items by code. */
+    id?:string;
+
+    /* An arbitrary bookmark code for this menu item.  This allows a specific submenu to be retrieved and worked with programmatically. */
+    bookmarkId?:string;
 
     /* Arbitrary properties */
     properties?: {[property:string]:any};
@@ -129,6 +151,9 @@ export class AlRoute {
     /* Is the menu item visible? */
     visible:boolean = true;
 
+    /* Is the menu item enabled?  This is provided for use by custom menu implementations, and no managed by this module. */
+    enabled:boolean = true;
+
     /* Is the menu item currently activated/expanded?  This will allow child items to be seen. */
     activated:boolean = false;
 
@@ -155,6 +180,9 @@ export class AlRoute {
         this.definition =   definition;
         this.caption    =   definition.caption;
         this.parent     =   parent;
+        if ( definition.bookmarkId ) {
+            this.host.setBookmark( definition.bookmarkId, this );
+        }
         if ( definition.children ) {
             for ( let i = 0; i < definition.children.length; i++ ) {
                 this.children.push( new AlRoute( host, definition.children[i], this ) );
@@ -220,7 +248,7 @@ export class AlRoute {
     refresh( resolve:boolean = false ):boolean {
 
         /* Evaluate visibility */
-        this.visible = this.definition.visible ? this.evaluateCondition( this.definition.visible ) : true;
+        this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible ) : true;
 
         /* Evaluate children recursively, and deduce activation state from them. */
         let childActivated = this.children.reduce(  ( activated, child ) => {
@@ -292,10 +320,15 @@ export class AlRoute {
     }
 
     /**
-     * Helper Messages
+     *---- Helper Methods ---------------------------------------------
+     */
+
+    /**
+     * Evaluates the HREF for an route with action type 'link'
      */
     evaluateHref( action:AlRouteAction ):boolean {
         if ( action.url ) {
+            this.href = action.url;
             return true;
         }
         let node = AlLocatorService.getNode( action.location );
@@ -307,19 +340,33 @@ export class AlRoute {
         this.baseHREF = AlLocatorService.resolveNodeURI( node );
         let path = action.path ? action.path : '';
         let missing = false;
-        path = path.replace( /\:[a-zA-Z_]+/g, match => {
-            let variableId = match.substring( 1 );
-            if ( this.host.routeParameters.hasOwnProperty( variableId ) ) {
-                return this.host.routeParameters[variableId];
-            } else {
-                missing = true;
-                return `:${variableId}`;
-            }
-        } );
+        //  Substitute route parameters into the path pattern; fail on missing required parameters,
+        //  ignore missing optional parameters (denoted by question mark), and trim any trailing slashes and spaces.
+        path = path.replace( /\:[a-zA-Z_\?]+/g, match => {
+                let variableId = match.substring( 1 );
+                let required = true;
+                if ( variableId[variableId.length-1] === '?' ) {
+                    required = false;
+                    variableId = variableId.substring( 0, variableId.length - 1 );
+                }
+                if ( this.host.routeParameters.hasOwnProperty( variableId ) ) {
+                    return this.host.routeParameters[variableId];
+                } else if ( required ) {
+                    missing = true;
+                    return `:${variableId}`;
+                } else {
+                    return '';
+                }
+            } )
+            .replace( /[ \/]+$/g, '' );
+
         this.href = this.baseHREF + path;
         return ! missing;
     }
 
+    /**
+     * Evaluates the activation state of the route
+     */
     evaluateActivation():boolean {
         if ( ! this.href ) {
             return false;
@@ -346,7 +393,13 @@ export class AlRoute {
         return this.activated;
     }
 
-    evaluateCondition( condition:AlRouteCondition ):boolean {
+    /**
+     * Evaluates a single conditional against this route
+     */
+    evaluateCondition( condition:AlRouteCondition|boolean ):boolean {
+        if ( typeof( condition ) === 'boolean' ) {
+            return condition;
+        }
         if ( condition.rule && condition.conditions ) {
             //  This condition is a group of other conditions -- evaluate it internally
             let total = 0;
@@ -383,12 +436,18 @@ export class AlRoute {
         return truthful;
     }
 
+    /**
+     * Determines whether a path pattern matches the current URL
+     */
     evaluatePathMatch( pathMatches:string ) {
         let pattern = "^.*" + pathMatches.replace(/[{}()|[\]\\\/]/g, '\\$&') + "$";
         let comparison = new RegExp( pattern );
         return comparison.test( this.host.currentUrl );
     }
 
+    /**
+     * Retrieves the route's action, which may be a shared "named" route or embedded directly into the route's definition.
+     */
     getRouteAction():AlRouteAction {
         if ( typeof( this.definition.action ) === 'string' ) {
             if ( this.host.schema && this.host.schema.namedRoutes && this.host.schema.namedRoutes.hasOwnProperty( this.definition.action ) ) {
@@ -400,6 +459,49 @@ export class AlRoute {
         }
         return null;
     }
+
+    /**
+     * Updates the route to use a specified action
+     */
+    setAction( action:AlRouteAction ) {
+        this.definition.action = action;
+    }
+
+    /**
+     * Updates the route to use a specific callback action.
+     */
+    setCallback( callback?:{(route:AlRoute,mouseEvent?:any):void} ) {
+        this.setAction( {
+            type: 'callback',
+            callback: callback
+        } );
+    }
+
+    /**
+     * Retrieves a nested child route by matching bookmarks, captions, IDs, or numerical indices.
+     */
+    findChild( idPath:string|string[] ):AlRoute {
+        const path = typeof( idPath ) === 'string' ? idPath.split("/") : idPath;
+        const childId = path[0];
+        let child:AlRoute;
+
+        if ( childId[0] === '#' ) {
+            //  Retrieve by numerical index
+            let childIndex = parseInt( childId.substring( 1 ), 10 );
+            child = this.children.length > childIndex ? this.children[childIndex] : null;
+        } else {
+            if ( typeof( idPath ) === 'string' ) {
+                child = this.host.getBookmark( childId );
+            }
+            if ( ! child ) {
+                child = this.children ? this.children.find( child => child.definition.caption === childId || child.definition.id === childId ) : null;
+            }
+        }
+        if ( path.length > 1 ) {
+            return child ? child.findChild( path.slice( 1 ) ) : null;
+        }
+        return child || null;
+    }
 }
 
 /**
@@ -410,5 +512,5 @@ export interface AlNavigationSchema
     name: string;
     description: string;
     menus: {[menuId:string]:AlRouteDefinition};
-    namedRoutes: {[routeId:string]:AlRouteDefinition};
+    namedRoutes: {[routeName:string]:AlRouteDefinition};
 }
