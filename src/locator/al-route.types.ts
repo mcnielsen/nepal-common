@@ -24,6 +24,10 @@ export interface AlRoutingHost
     setRouteParameter( parameter:string, value:string ):void;
     deleteRouteParameter( parameter:string ):void;
 
+    /* Bookmarks */
+    setBookmark( bookmarkId:string, route:AlRoute );
+    getBookmark( bookmarkId:string ):AlRoute;
+
     /* Asks the host to execute a given route's action. */
     dispatch(route:AlRoute, params?:{[param:string]:string}):void;
 
@@ -39,11 +43,18 @@ export interface AlRoutingHost
 export const AlNullRoutingHost = {
     currentUrl: '',
     routeParameters: {},
+    bookmarks: {},
     setRouteParameter: ( parameter:string, value:string ) => {
         this.routeParameters[parameter] = value;
     },
     deleteRouteParameter: ( parameter:string ) => {
         delete this.routeParameters[parameter];
+    },
+    setBookmark: ( bookmarkId:string, route:AlRoute ) => {
+        this.bookmarks[bookmarkId] = route;
+    },
+    getBookmark: ( bookmarkId:string ) => {
+        return this.bookmarks[bookmarkId];
     },
     dispatch: (route:AlRoute) => {},
     evaluate: (condition:AlRouteCondition) => false
@@ -102,6 +113,9 @@ export interface AlRouteDefinition {
     /* An arbitrary id associated with this menu item.  This is most useful (practically) for retrieving specific menu items by code. */
     id?:string;
 
+    /* An arbitrary bookmark code for this menu item.  This allows a specific submenu to be retrieved and worked with programmatically. */
+    bookmarkId?:string;
+
     /* Arbitrary properties */
     properties?: {[property:string]:any};
 
@@ -137,6 +151,9 @@ export class AlRoute {
     /* Is the menu item visible? */
     visible:boolean = true;
 
+    /* Is the menu item enabled?  This is provided for use by custom menu implementations, and no managed by this module. */
+    enabled:boolean = true;
+
     /* Is the menu item currently activated/expanded?  This will allow child items to be seen. */
     activated:boolean = false;
 
@@ -163,6 +180,9 @@ export class AlRoute {
         this.definition =   definition;
         this.caption    =   definition.caption;
         this.parent     =   parent;
+        if ( definition.bookmarkId ) {
+            this.host.setBookmark( definition.bookmarkId, this );
+        }
         if ( definition.children ) {
             for ( let i = 0; i < definition.children.length; i++ ) {
                 this.children.push( new AlRoute( host, definition.children[i], this ) );
@@ -228,7 +248,7 @@ export class AlRoute {
     refresh( resolve:boolean = false ):boolean {
 
         /* Evaluate visibility */
-        this.visible = this.definition.visible ? this.evaluateCondition( this.definition.visible ) : true;
+        this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible ) : true;
 
         /* Evaluate children recursively, and deduce activation state from them. */
         let childActivated = this.children.reduce(  ( activated, child ) => {
@@ -376,7 +396,10 @@ export class AlRoute {
     /**
      * Evaluates a single conditional against this route
      */
-    evaluateCondition( condition:AlRouteCondition ):boolean {
+    evaluateCondition( condition:AlRouteCondition|boolean ):boolean {
+        if ( typeof( condition ) === 'boolean' ) {
+            return condition;
+        }
         if ( condition.rule && condition.conditions ) {
             //  This condition is a group of other conditions -- evaluate it internally
             let total = 0;
@@ -455,12 +478,25 @@ export class AlRoute {
     }
 
     /**
-     * Retrieves a nested child route by matching captions or IDs.
+     * Retrieves a nested child route by matching bookmarks, captions, IDs, or numerical indices.
      */
     findChild( idPath:string|string[] ):AlRoute {
         const path = typeof( idPath ) === 'string' ? idPath.split("/") : idPath;
         const childId = path[0];
-        let child = this.children ? this.children.find( child => child.definition.caption === childId || child.definition.id === childId ) : null;
+        let child:AlRoute;
+
+        if ( childId[0] === '#' ) {
+            //  Retrieve by numerical index
+            let childIndex = parseInt( childId.substring( 1 ), 10 );
+            child = this.children.length > childIndex ? this.children[childIndex] : null;
+        } else {
+            if ( typeof( idPath ) === 'string' ) {
+                child = this.host.getBookmark( childId );
+            }
+            if ( ! child ) {
+                child = this.children ? this.children.find( child => child.definition.caption === childId || child.definition.id === childId ) : null;
+            }
+        }
         if ( path.length > 1 ) {
             return child ? child.findChild( path.slice( 1 ) ) : null;
         }

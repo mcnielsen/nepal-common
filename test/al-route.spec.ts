@@ -36,6 +36,11 @@ describe( 'AlRoute', () => {
         setRouteParameter: (parameter:string, value:string) => {
         },
         deleteRouteParameter: (parameter:string) => {
+        },
+        setBookmark: (id:string, route:AlRoute ) => {
+        },
+        getBookmark: (id:string):AlRoute => {
+            return null;
         }
     };
 
@@ -354,8 +359,8 @@ describe( 'AlRoute', () => {
             let route = new AlRoute( routingHost, {
                 caption: "Test Route",
                 action: {
-                    type: "link",
-                    url: "https://www.google.com"
+                    type: "trigger",
+                    trigger: "something.something.something"
                 },
                 visible: {
                     path_matches: '/remediations-scan-status.*'
