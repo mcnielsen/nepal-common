@@ -154,6 +154,9 @@ export class AlRoute {
     /* Is the menu item enabled?  This is provided for use by custom menu implementations, and no managed by this module. */
     enabled:boolean = true;
 
+    /* Is the menu item locked?  This prevents refresh cycles from changing its state. */
+    locked:boolean = false;
+
     /* Is the menu item currently activated/expanded?  This will allow child items to be seen. */
     activated:boolean = false;
 
@@ -246,6 +249,12 @@ export class AlRoute {
      * @returns {boolean} Returns true if the route (or one of its children) is activated, false otherwise.
      */
     refresh( resolve:boolean = false ):boolean {
+
+        if ( this.locked ) {
+            //  If this menu item has been locked, then we won't reevaluate its URL, its visibility, or its activated status.
+            //  This lets outside software take "manual" control of the state of a given menu.
+            return;
+        }
 
         /* Evaluate visibility */
         this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible ) : true;
@@ -376,7 +385,7 @@ export class AlRoute {
             let noParamsHref = this.href.indexOf('?') === -1
                                     ? this.href
                                     : this.href.substring( 0, this.href.indexOf('?') );
-            if ( noParamsHref.indexOf( this.host.currentUrl ) === 0 && this.host.currentUrl.indexOf( noParamsHref ) === 0 ) {
+            if ( this.host.currentUrl.indexOf( noParamsHref ) === 0 ) {
                 //  If our full URL *contains* the current URL, we are activated
                 this.activated = true;
             } else if ( this.definition.matches ) {
