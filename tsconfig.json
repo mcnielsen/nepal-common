@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
-    "strict": false,
-    "strictNullChecks": false,
-    "strictPropertyInitialization": false,
-    "alwaysStrict": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "noImplicitReturns": true,
+    "strict": true,
     "baseUrl": "",
     "paths": {
         "@al/common": [ "./src" ],

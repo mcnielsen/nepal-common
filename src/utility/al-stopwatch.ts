@@ -17,7 +17,8 @@ export declare type AlStopwatchCallback = { ():void };
 
 export class AlStopwatch {
 
-    public callback:AlStopwatchCallback;
+    // maybe this should be in the constructor
+    public callback?:AlStopwatchCallback;
     public timer:any = null;
     public interval:number = 0;
 
@@ -27,8 +28,8 @@ export class AlStopwatch {
     /**
      *  A static method to generate an unscheduled timer
      */
-    public static later( callback:AlStopwatchCallback ) {
-        let watch = new AlStopwatch();
+    public static later( callback:AlStopwatchCallback ): AlStopwatch {
+        const watch = new AlStopwatch();
         watch.callback = callback;
         return watch;
     }
@@ -36,7 +37,7 @@ export class AlStopwatch {
     /**
      *  A static method to generate a timer that will execute once after a given number of milliseconds.
      */
-    public static once( callback:AlStopwatchCallback, delay:number = 0 ) {
+    public static once( callback:AlStopwatchCallback, delay:number = 0 ): AlStopwatch {
         let watch = new AlStopwatch();
         watch.callback = callback;
         watch.timer = setTimeout( watch.tick, delay );
@@ -48,7 +49,7 @@ export class AlStopwatch {
      *  Note that this implementation deviates from the behavior of setInterval by *defaulting*
      *  to firing the timer immediately.
      */
-    public static repeatedly( callback:AlStopwatchCallback, interval:number = 1000, beginImmediately:boolean = true ) {
+    public static repeatedly( callback:AlStopwatchCallback, interval:number = 1000, beginImmediately:boolean = true ): AlStopwatch {
         let watch = new AlStopwatch();
         watch.callback = callback;
         watch.interval = interval;
@@ -66,7 +67,9 @@ export class AlStopwatch {
         if ( this.interval === 0 ) {
             this.timer = null;
         }
-        this.callback();
+        if(this.callback){
+            this.callback();
+        }
     }
 
     /**

@@ -59,8 +59,8 @@ export const AlNullRoutingHost = {
     getBookmark: ( bookmarkId:string ) => {
         return AlNullRoutingHost.bookmarks[bookmarkId];
     },
-    dispatch: (route:AlRoute) => {},
-    evaluate: (condition:AlRouteCondition) => false
+    dispatch: () => {},
+    evaluate: () => false
 };
 
 /**
@@ -148,8 +148,8 @@ export class AlRoute {
     /* The route's caption, echoed from its definition but possibly translated */
     caption:string;
 
-    /* The raw data of the route */
-    definition:AlRouteDefinition;
+
+
 
     /* Is the menu item visible? */
     visible:boolean = true;
@@ -163,29 +163,28 @@ export class AlRoute {
     /* Is the menu item currently activated/expanded?  This will allow child items to be seen. */
     activated:boolean = false;
 
-    /* Parent menu item (if not a top level navigational slot) */
-    parent:AlRoute = null;
+    // parent?:AlRoute;
 
     /* Child menu items */
     children:AlRoute[] = [];
 
-    /* Link to the routing host, which exposes current routing context, routing parameters, and actions that influence the environment */
-    host:AlRoutingHost = null;
+    // host?:AlRoutingHost;
 
     /* Arbitrary properties */
     properties: {[property:string]:any} = {};
 
     /* Base of target URL */
-    baseHREF:string = null;
+    baseHREF?:string;
 
     /* Cached target URL */
-    href:string = null;
+    href?:string;
 
-    constructor( host:AlRoutingHost, definition:AlRouteDefinition, parent:AlRoute = null ) {
-        this.host       =   host;
+    constructor( public host:AlRoutingHost, /* Link to the routing host, which exposes current routing context, routing parameters, and actions that influence the environment */
+                 public definition:AlRouteDefinition, /* The raw data of the route */
+                 public parent:AlRoute|null = null    /* Parent menu item (if not a top level navigational slot) */
+    ) {
         this.definition =   definition;
         this.caption    =   definition.caption;
-        this.parent     =   parent;
         if ( definition.bookmarkId ) {
             this.host.setBookmark( definition.bookmarkId, this );
         }
@@ -251,7 +250,7 @@ export class AlRoute {
      *
      * @returns {boolean} Returns true if the route (or one of its children) is activated, false otherwise.
      */
-    refresh( resolve:boolean = false ):boolean {
+    refresh( resolve:boolean = false ):boolean|undefined {
 
         if ( this.locked ) {
             //  If this menu item has been locked, then we won't reevaluate its URL, its visibility, or its activated status.
@@ -260,7 +259,7 @@ export class AlRoute {
         }
 
         /* Evaluate visibility */
-        this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible ) : true;
+        this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible || false ) : true;
 
         /* Evaluate children recursively, and deduce activation state from them. */
         let childActivated = this.children.reduce(  ( activated, child ) => {
@@ -269,7 +268,7 @@ export class AlRoute {
                                                     false );
 
         /* Evaluate fully qualified href, if visible/relevant */
-        let action:AlRouteAction = this.getRouteAction();
+        let action:AlRouteAction|null = this.getRouteAction();
         if ( action ) {
             if ( this.visible && ( resolve || this.href === null ) && action.type === 'link' ) {
                 if ( ! this.evaluateHref( action ) ) {
@@ -343,7 +342,11 @@ export class AlRoute {
             this.href = action.url;
             return true;
         }
-        let node = AlLocatorService.getNode( action.location );
+        if( !action.location ){
+            console.warn(`Warning: cannot link to undefined location in menu item '${this.caption}` );
+            return false;
+        }
+        const node = AlLocatorService.getNode( action.location );
         if ( ! node ) {
             console.warn(`Warning: cannot link to unknown location '${action.location}' in menu item '${this.caption}` );
             return false;
@@ -380,22 +383,20 @@ export class AlRoute {
      * Evaluates the activation state of the route
      */
     evaluateActivation():boolean {
-        if ( ! this.href ) {
+        if ( !this.href ) {
             return false;
         }
-        if ( this.host.currentUrl.indexOf( this.baseHREF ) === 0 ) {
+        if ( this.baseHREF && this.host.currentUrl.indexOf( this.baseHREF ) === 0 ) {
             // remove parameters from href
-            let noParamsHref = this.href.indexOf('?') === -1
-                                    ? this.href
-                                    : this.href.substring( 0, this.href.indexOf('?') );
+            const noParamsHref = this.href.includes('?') ? this.href.substring(0, this.href.indexOf('?')) : this.href;
             if ( this.host.currentUrl.indexOf( noParamsHref ) === 0 ) {
                 //  If our full URL *contains* the current URL, we are activated
                 this.activated = true;
             } else if ( this.definition.matches ) {
                 //  If we match any other match patterns, we are activated
                 for ( let m = 0; m < this.definition.matches.length; m++ ) {
-                    let regexp = ( "^" + this.baseHREF + this.definition.matches[m] + "$" ).replace("/", "\\/" );
-                    let comparison = new RegExp( regexp );
+                    const regexp = ( "^" + this.baseHREF + this.definition.matches[m] + "$" ).replace("/", "\\/" );
+                    const comparison = new RegExp( regexp );
                     if ( comparison.test( this.host.currentUrl ) ) {
                         this.activated = true;
                     }
@@ -458,7 +459,7 @@ export class AlRoute {
     /**
      * Retrieves the route's action, which may be a shared "named" route or embedded directly into the route's definition.
      */
-    getRouteAction():AlRouteAction {
+    getRouteAction():AlRouteAction|null {
         if ( typeof( this.definition.action ) === 'string' ) {
             if ( typeof( this.host.getRouteByName ) === 'function' ) {
                 const definition:AlRouteDefinition = this.host.getRouteByName( this.definition.action );
@@ -493,10 +494,10 @@ export class AlRoute {
     /**
      * Retrieves a nested child route by matching bookmarks, captions, IDs, or numerical indices.
      */
-    findChild( idPath:string|string[] ):AlRoute {
+    findChild( idPath:string|string[] ):AlRoute|null {
         const path = typeof( idPath ) === 'string' ? idPath.split("/") : idPath;
         const childId = path[0];
-        let child:AlRoute;
+        let child:AlRoute|null|undefined = null;
 
         if ( childId[0] === '#' ) {
             //  Retrieve by numerical index

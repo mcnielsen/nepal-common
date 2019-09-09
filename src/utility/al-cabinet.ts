@@ -19,7 +19,7 @@ export class AlCabinet
 
     static openCabinets: {[cabinetName:string]:AlCabinet} = {};
 
-    public syncronizer:AlStopwatch = null;
+    public syncronizer?:AlStopwatch;
 
     constructor( public name:string,
                  public data:any = {},
@@ -35,7 +35,7 @@ export class AlCabinet
      *
      *  @param {string} name The name of the data cluster.
      *
-     *  @returns {Cabinet} A cabinet instance that can be used to interrogate/update the data.
+     *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
      */
 
     public static persistent( name:string ):AlCabinet {
@@ -63,7 +63,7 @@ export class AlCabinet
      *
      *  @param {string} name The name of the data cluster.
      *
-     *  @returns {Cabinet} A cabinet instance that can be used to interrogate/update the data.
+     *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
      */
 
     public static ephemeral( name:string ):AlCabinet {
@@ -91,7 +91,7 @@ export class AlCabinet
      *
      *  @param {string} name The name of the data cluster
      *
-     *  @returns {Cabinet} A cabinet instance that can be used just to hold arbitrary data.
+     *  @returns {AlCabinet} A cabinet instance that can be used just to hold arbitrary data.
      */
     public static local( name:string ):AlCabinet {
         if ( AlCabinet.openCabinets.hasOwnProperty( name ) ) {
@@ -149,11 +149,9 @@ export class AlCabinet
         if ( ! this.data.hasOwnProperty( property ) ) {
             return true;
         }
-        let currentTS = + new Date();
-        if ( this.data[property].expires > 0 && this.data[property].expires < currentTS ) {
-            return true;
-        }
-        return false;
+        const currentTS = + new Date();
+        return this.data[property].expires > 0 && this.data[property].expires < currentTS;
+
     }
 
     /**
@@ -163,7 +161,7 @@ export class AlCabinet
      *  @param {any} value The value to set it to.
      *  @param {number} ttl The number of seconds the data should be retained for.  Defaults to 0 (indefinite).
      *
-     *  @returns {Cabinet} returns the instance so that calls to it may be chained, if desired.
+     *  @returns {AlCabinet} returns the instance so that calls to it may be chained, if desired.
      */
     public set( property:string, value:any, ttl:number = 0 ) {
         if ( value === null || value === undefined ) {
@@ -185,7 +183,7 @@ export class AlCabinet
      *
      *  @param {string} property The property to be deleted.
      *
-     *  @returns {Cabinet} returns the instance so that calls may be chained, if desired.
+     *  @returns {AlCabinet} returns the instance so that calls may be chained, if desired.
      */
     public delete( property:string ) {
         if ( this.data.hasOwnProperty( property ) ) {
@@ -214,7 +212,7 @@ export class AlCabinet
     /**
      *  Synchronizes data back into the storage facility after performing a garbage collection run.
      *
-     *  @returns {Cabinet} the class instance.
+     *  @returns {AlCabinet} the class instance.
      */
     public synchronize = () => {
         /**

@@ -152,8 +152,8 @@ export class AlLocatorMatrix
         }
     };
 
-    protected actingUri:string = null;
-    protected actor:AlLocationDescriptor = null;
+    protected actingUri:string|null = null;
+    protected actor:AlLocationDescriptor|null = null;
 
     protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
     protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
@@ -162,12 +162,12 @@ export class AlLocatorMatrix
     protected context:AlLocationContext = {
         environment:        "production",
         residency:          "US",
-        insightLocationId:  null,
-        accessible:         null
+        insightLocationId:  undefined,
+        accessible:         undefined
     };
 
 
-    constructor( nodes:AlLocationDescriptor[] = [], actingUri:string|boolean = true, context:AlLocationContext = null ) {
+    constructor( nodes:AlLocationDescriptor[] = [], actingUri:string|boolean = true, context?:AlLocationContext ) {
         if ( context ) {
             this.setContext( context );
         }
@@ -183,7 +183,7 @@ export class AlLocatorMatrix
      * Arguably the only important general-purpose functionality of this service.
      * Calculates a URL from a location identifier, an optional path fragment, and an optional context.
      */
-    public resolveURL( locTypeId:string, path:string = null, context:AlLocationContext = null ) {
+    public resolveURL( locTypeId:string, path?:string, context?:AlLocationContext ) {
         const loc = this.getNode( locTypeId, context );
         let url:string;
         if ( loc ) {
@@ -204,7 +204,7 @@ export class AlLocatorMatrix
     /**
      *  Resolves a literal URI to a service node.
      */
-    public getNodeByURI( targetURI:string ):AlLocationDescriptor {
+    public getNodeByURI( targetURI:string ):AlLocationDescriptor|null {
         for ( let k in this.uriMap ) {
             const mapping = this.uriMap[k];
             if ( mapping.matcher.test( targetURI ) ) {
@@ -223,21 +223,23 @@ export class AlLocatorMatrix
     /**
      *  Gets the currently acting node.
      */
-    public getActingNode():AlLocationDescriptor {
+    public getActingNode():AlLocationDescriptor|null {
         return this.actor;
     }
 
     /**
      *  Recursively resolves the URI of a service node.
      */
-    public resolveNodeURI( node:AlLocationDescriptor, context:AlLocationContext = null ):string {
+    public resolveNodeURI( node:AlLocationDescriptor, context?:AlLocationContext ):string {
         if ( node._fullURI ) {
             return node._fullURI;
         }
         let uri = '';
         if ( node.parentId ) {
-            let parentNode = this.getNode( node.parentId, context );
-            uri += this.resolveNodeURI( parentNode, context );
+            const parentNode = this.getNode( node.parentId, context );
+            if(parentNode) {
+                uri += this.resolveNodeURI( parentNode, context );
+            }
         }
         if ( node.uri ) {
             uri += node.uri;
@@ -313,7 +315,7 @@ export class AlLocatorMatrix
         return results;
     }
 
-    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor {
+    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor|null {
         let results = this.search( filter );
         if ( results.length === 0 ) {
             return null;
@@ -325,7 +327,7 @@ export class AlLocatorMatrix
      *  Sets the acting context (preferred environment, data residency, location attributes).
      *  This acts as a merge against existing context, so the caller can provide only fragmentary information without borking things.
      */
-    public setContext( context:AlLocationContext = null ) {
+    public setContext( context?:AlLocationContext ) {
         this.nodes = {};    //  flush lookup cache
         this.context.insightLocationId = context && context.insightLocationId ? context.insightLocationId : this.context.insightLocationId;
         this.context.accessible = context && context.accessible && context.accessible.length ? context.accessible : this.context.accessible;
@@ -355,8 +357,8 @@ export class AlLocatorMatrix
      *
      *  @returns {AlLocationDescriptor} A node descriptor (or null, if no node matches).
      */
-    public getNode( locTypeId:string, context:AlLocationContext = null ):AlLocationDescriptor {
-        if ( this.nodes.hasOwnProperty( locTypeId ) && ! context ) {
+    public getNode( locTypeId:string, context?:AlLocationContext ):AlLocationDescriptor|null {
+        if ( this.nodes.hasOwnProperty( locTypeId ) && !context ) {
             return this.nodes[locTypeId];
         }
         let environment = context && context.environment ? context.environment : this.context.environment;
