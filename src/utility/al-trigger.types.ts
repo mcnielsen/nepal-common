@@ -40,7 +40,7 @@ export class AlTriggeredEvent
      */
     public anyResponseEquals( targetValue:any ):boolean {
         return this.responses.reduce(   ( accumulated, response ) => {
-                                            return ( accumulated || response === targetValue ) ? true : false;
+                                            return (accumulated || response === targetValue);
                                         },
                                         false );
     }
@@ -50,7 +50,7 @@ export class AlTriggeredEvent
      */
     public anyResponseWith( checkCallback:{(responseValue:any):boolean} ):boolean {
         return this.responses.reduce(   ( accumulated, response ) => {
-                                            return ( accumulated || checkCallback(response) ) ? true : false;
+                                            return (accumulated || checkCallback(response));
                                         },
                                         false );
     }
@@ -191,7 +191,7 @@ export class AlSubscriptionGroup
      */
     public manage( item:any|any[] ) {
         if ( typeof( item ) === 'object' && item.length ) {
-            item.map( subitem => this.manage( subitem ) );
+            item.map( (subitem: any) => this.manage( subitem ) );
             return;
         } else if ( typeof( item ) === 'function' ) {
             this.manage( item() );

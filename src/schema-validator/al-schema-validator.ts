@@ -8,7 +8,7 @@ import { AlResponseValidationError } from '../errors';
 export class AlSchemaValidator<Type>
 {
     protected static validatorCache:{[type:string]:any} = {};
-    protected static validationEngine = null;
+    protected static validationEngine: ajv.Ajv|null = null;
 
     public validate( data:any, schema:any|any[], converter:{(data:any):Type} = null ):Type {
 

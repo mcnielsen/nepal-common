@@ -129,7 +129,7 @@ export interface AlLocationDescriptor
 
 export class AlLocatorMatrix
 {
-    protected static insightLocations = {
+    protected static insightLocations: {[i:string]: ({residency: string; alternatives?: string[]; logicalRegion?: string});} = {
         "defender-us-denver": {
             residency: "US",
             logicalRegion: "us-west-1"
@@ -258,7 +258,6 @@ export class AlLocatorMatrix
      *  calculates which node is the acting node based on its URI.
      *
      *  @param {Array} nodes A list of service node descriptors.
-     *  @param {string} actingURI
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
 
@@ -474,7 +473,7 @@ export class AlLocatorMatrix
         if ( ! AlLocatorMatrix.insightLocations.hasOwnProperty( this.context.insightLocationId ) ) {
             return;
         }
-        let insightLocation = AlLocatorMatrix.insightLocations[this.context.insightLocationId];
+        const insightLocation = AlLocatorMatrix.insightLocations[this.context.insightLocationId];
         if ( insightLocation.alternatives ) {
             let selected = null;
             for ( let i = 0; i < insightLocation.alternatives.length; i++ ) {

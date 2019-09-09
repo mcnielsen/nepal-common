@@ -35,7 +35,7 @@ export class AlBehaviorPromise<ResultType>
     /**
      * Attaches a resolve/reject listener to the underlying promise.
      */
-    public then( callback, error = undefined ):Promise<any> {       /* NOTE: for some reason, using `ResultType` here breaks compilation.  I have no idea why, but it makes me rather sad :| */
+    public then( callback: (value: ResultType) => ResultType | PromiseLike<ResultType>, error:any = undefined ):Promise<ResultType> {
         return this.promise.then( callback, error );
     }
 

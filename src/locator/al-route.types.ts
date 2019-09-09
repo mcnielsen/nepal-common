@@ -28,7 +28,7 @@ export interface AlRoutingHost
     getRouteByName?( routeName:string ):AlRouteDefinition;
 
     /* Bookmarks - arguably the worst name for a navigation construct I've chosen in years!  But super useful, I swear. */
-    setBookmark( bookmarkId:string, route:AlRoute );
+    setBookmark( bookmarkId:string, route:AlRoute ):void;
     getBookmark( bookmarkId:string ):AlRoute;
 
     /* Asks the host to execute a given route's action. */
@@ -45,19 +45,19 @@ export interface AlRoutingHost
 /* tslint:disable:variable-name */
 export const AlNullRoutingHost = {
     currentUrl: '',
-    routeParameters: {},
-    bookmarks: {},
+    routeParameters: {} as {[i:string]:string},
+    bookmarks: {} as {[i:string]:AlRoute},
     setRouteParameter: ( parameter:string, value:string ) => {
-        this.routeParameters[parameter] = value;
+        AlNullRoutingHost.routeParameters[parameter] = value;
     },
     deleteRouteParameter: ( parameter:string ) => {
-        delete this.routeParameters[parameter];
+        delete AlNullRoutingHost.routeParameters[parameter];
     },
     setBookmark: ( bookmarkId:string, route:AlRoute ) => {
-        this.bookmarks[bookmarkId] = route;
+        AlNullRoutingHost.bookmarks[bookmarkId] = route;
     },
     getBookmark: ( bookmarkId:string ) => {
-        return this.bookmarks[bookmarkId];
+        return AlNullRoutingHost.bookmarks[bookmarkId];
     },
     dispatch: (route:AlRoute) => {},
     evaluate: (condition:AlRouteCondition) => false
@@ -354,7 +354,7 @@ export class AlRoute {
         let missing = false;
         //  Substitute route parameters into the path pattern; fail on missing required parameters,
         //  ignore missing optional parameters (denoted by question mark), and trim any trailing slashes and spaces.
-        path = path.replace( /\:[a-zA-Z_\?]+/g, match => {
+        path = path.replace( /:[a-zA-Z_?]+/g, match => {
                 let variableId = match.substring( 1 );
                 let required = true;
                 if ( variableId[variableId.length-1] === '?' ) {
@@ -421,19 +421,17 @@ export class AlRoute {
                 passed += this.evaluateCondition( child ) ? 1 : 0;
             } );
             if ( condition.rule === "any" ) {
-                return ( passed > 0 ) ? true : false;
+                return (passed > 0);
             } else if ( condition.rule === "all" ) {
-                return ( passed === total ) ? true : false;
-            } else {
-                return ( passed === 0 ) ? true : false;
+                return (passed === total);
             }
-            return false;
+            return (passed === 0);
         }
 
         let truthful = true;
         if ( condition.parameters ) {
             //  Evaluates true only if all of the referenced route parameters exist
-            truthful = truthful && condition.parameters.reduce( ( present, parameterName ) => {
+            truthful = truthful && condition.parameters.reduce<boolean>( ( present, parameterName ):boolean => {
                     return present && this.host.routeParameters.hasOwnProperty( parameterName );
                 }, true );
         }
