@@ -180,6 +180,80 @@ export class AlLocatorMatrix
     }
 
     /**
+     * Arguably the only important general-purpose functionality of this service.
+     * Calculates a URL from a location identifier, an optional path fragment, and an optional context.
+     */
+    public resolveURL( locTypeId:string, path:string = null, context:AlLocationContext = null ) {
+        const loc = this.getNode( locTypeId, context );
+        let url:string;
+        if ( loc ) {
+            url = this.resolveNodeURI( loc );
+        } else {
+            if ( typeof( window ) !== 'undefined' ) {
+                url = window.location.origin + ( ( window.location.pathname && window.location.pathname.length > 1 ) ? window.location.pathname : '' );
+            } else {
+                url = "http://localhost:9999";
+            }
+        }
+        if ( path ) {
+            url += path;        //  wow, that `const` keyword is so useful!  except not.
+        }
+        return url;
+    }
+
+    /**
+     *  Resolves a literal URI to a service node.
+     */
+    public getNodeByURI( targetURI:string ):AlLocationDescriptor {
+        for ( let k in this.uriMap ) {
+            const mapping = this.uriMap[k];
+            if ( mapping.matcher.test( targetURI ) ) {
+                let baseUrl = this.getBaseUrl( targetURI );
+                if ( baseUrl !== mapping.location.uri ) {
+                    mapping.location.uri = baseUrl;
+                    mapping.location._fullURI = baseUrl;     // Use this specific base URL for resolving other links to this application type
+                    console.log(`Notice: using [${baseUrl}] as a base URI for location type '${mapping.location.locTypeId}'`);
+                }
+                return mapping.location;
+            }
+        }
+        return null;
+    }
+
+    /**
+     *  Gets the currently acting node.
+     */
+    public getActingNode():AlLocationDescriptor {
+        return this.actor;
+    }
+
+    /**
+     *  Recursively resolves the URI of a service node.
+     */
+    public resolveNodeURI( node:AlLocationDescriptor, context:AlLocationContext = null ):string {
+        if ( node._fullURI ) {
+            return node._fullURI;
+        }
+        let uri = '';
+        if ( node.parentId ) {
+            let parentNode = this.getNode( node.parentId, context );
+            uri += this.resolveNodeURI( parentNode, context );
+        }
+        if ( node.uri ) {
+            uri += node.uri;
+            if ( ! node.parentId ) {
+                //  For historical reasons, some nodes (like auth0) are represented without protocols (e.g., alertlogic-integration.auth0.com instead of https://alertlogic-integration.auth0.com).
+                //  For the purposes of resolving functional links, detect these protocolless domains and add the default https:// protocol to them.
+                if ( uri.indexOf("http") !== 0 ) {
+                    uri = "https://" + uri;
+                }
+            }
+        }
+        node._fullURI = uri;
+        return uri;
+    }
+
+    /**
      *  Updates the service matrix model with a set of service node descriptors.  Optionally
      *  calculates which node is the acting node based on its URI.
      *
@@ -326,34 +400,9 @@ export class AlLocatorMatrix
     }
 
     /**
-     *  Resolves a literal URI to a service node.
-     */
-    public getNodeByURI( targetURI:string ):AlLocationDescriptor {
-        for ( let k in this.uriMap ) {
-            const mapping = this.uriMap[k];
-            if ( mapping.matcher.test( targetURI ) ) {
-                let baseUrl = this.getBaseUrl( targetURI );
-                if ( baseUrl !== mapping.location.uri ) {
-                    mapping.location._fullURI = baseUrl;     // Use this specific base URL for resolving other links to this application type
-                    console.log(`Notice: using [${baseUrl}] as a base URI for location type '${mapping.location.locTypeId}'`);
-                }
-                return mapping.location;
-            }
-        }
-        return null;
-    }
-
-    /**
-     *  Gets the currently acting node.
-     */
-    public getActingNode():AlLocationDescriptor {
-        return this.actor;
-    }
-
-    /**
      *  Saves a node (including hash lookups).
      */
-    public saveNode( node:AlLocationDescriptor ) {
+    protected saveNode( node:AlLocationDescriptor ) {
         if ( node.environment && node.residency ) {
             if ( node.insightLocationId ) {
                 this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}-${node.insightLocationId}`] = node;
@@ -368,35 +417,9 @@ export class AlLocatorMatrix
     }
 
     /**
-     *  Recursively resolves the URI of a service node.
-     */
-    public resolveNodeURI( node:AlLocationDescriptor, context:AlLocationContext = null ):string {
-        if ( node._fullURI ) {
-            return node._fullURI;
-        }
-        let uri = '';
-        if ( node.parentId ) {
-            let parentNode = this.getNode( node.parentId, context );
-            uri += this.resolveNodeURI( parentNode, context );
-        }
-        if ( node.uri ) {
-            uri += node.uri;
-            if ( ! node.parentId ) {
-                //  For historical reasons, some nodes (like auth0) are represented without protocols (e.g., alertlogic-integration.auth0.com instead of https://alertlogic-integration.auth0.com).
-                //  For the purposes of resolving functional links, detect these protocolless domains and add the default https:// protocol to them.
-                if ( uri.indexOf("http") !== 0 ) {
-                    uri = "https://" + uri;
-                }
-            }
-        }
-        node._fullURI = uri;
-        return uri;
-    }
-
-    /**
      * Adds pattern maches for a node's domain and domain aliases, so that URLs can be easily and efficiently mapped back to their nodes
      */
-    addUriMapping( node:AlLocationDescriptor ) {
+    protected addUriMapping( node:AlLocationDescriptor ) {
         let pattern:string;
 
         if ( typeof( node.uri ) === 'string' && node.uri.length > 0 ) {
@@ -416,7 +439,7 @@ export class AlLocatorMatrix
      *
      * All normal regex characters are escaped; * is converted to [a-zA-Z0-9_]+; and the whole expression is wrapped in ^....*$.
      */
-    escapeLocationPattern( uri:string ):string {
+    protected escapeLocationPattern( uri:string ):string {
         let pattern = "^" + uri.replace(/[-\/\\^$.()|[\]{}]/g, '\\$&');     //  escape all regexp characters except *, add anchor
         pattern = pattern.replace( /\*/, "[a-zA-Z0-9_]+" );                 //  convert * wildcard into group match with 1 or more characters
         pattern += ".*$";                                                   //  add filler and terminus anchor
@@ -427,7 +450,7 @@ export class AlLocatorMatrix
      * Chops off fragments, query strings, and any trailing slashes, and returns what *should* be just the base URL.
      * I make no promises about the quality of this code when confronted with incorrect or incomplete inputs.
      */
-    getBaseUrl( uri:string ):string {
+    protected getBaseUrl( uri:string ):string {
         if ( uri.indexOf("#") !== -1 ) {
             uri = uri.substring( 0, uri.indexOf("#") );
         }
@@ -444,7 +467,7 @@ export class AlLocatorMatrix
      * This method normalizes the current context.  In practice, this means mapping an insight location ID to the correct defender datacenter.
      * In other words, it is "black magic."  Or at least, dark gray.
      */
-    normalizeContext() {
+    protected normalizeContext() {
         if ( ! this.context.insightLocationId || ! this.context.accessible ) {
             return;
         }

@@ -13,18 +13,21 @@ import { AlLocatorService } from './al-locator.service';
  */
 export interface AlRoutingHost
 {
-    /* Exposes the effective navigation schema, if available (not required). */
-    schema?:AlNavigationSchema;
-
     /* Exposes the current URL of the application (required). */
     currentUrl:string;
+
+    /* @deprecated Exposes the effective navigation schema, if available (not required).  Don't use this! */
+    schema?:AlNavigationSchema;
 
     /* Routing parameters */
     routeParameters: {[parameter:string]:string};
     setRouteParameter( parameter:string, value:string ):void;
     deleteRouteParameter( parameter:string ):void;
 
-    /* Bookmarks */
+    /* Named routes - actions that can be reused by multiple menu items or invoked imperatively from code */
+    getRouteByName?( routeName:string ):AlRouteDefinition;
+
+    /* Bookmarks - arguably the worst name for a navigation construct I've chosen in years!  But super useful, I swear. */
     setBookmark( bookmarkId:string, route:AlRoute );
     getBookmark( bookmarkId:string ):AlRoute;
 
@@ -459,8 +462,11 @@ export class AlRoute {
      */
     getRouteAction():AlRouteAction {
         if ( typeof( this.definition.action ) === 'string' ) {
-            if ( this.host.schema && this.host.schema.namedRoutes && this.host.schema.namedRoutes.hasOwnProperty( this.definition.action ) ) {
-                return this.host.schema.namedRoutes[this.definition.action].action as AlRouteAction;
+            if ( typeof( this.host.getRouteByName ) === 'function' ) {
+                const definition:AlRouteDefinition = this.host.getRouteByName( this.definition.action );
+                if ( definition && definition.action ) {
+                    return definition.action as AlRouteAction;
+                }
             }
             return null;
         } else if ( typeof( this.definition.action ) === 'object' ) {
