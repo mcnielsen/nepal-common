@@ -39,8 +39,8 @@ describe( 'AlLocatorMatrix', () => {
         } );
 
         it( "should escape uri patterns in the expected way", () => {
-            expect( locator.escapeLocationPattern( "https://console.overview.alertlogic.com" ) ).to.equal( "^https:\\/\\/console\\.overview\\.alertlogic\\.com.*$" );
-            expect( locator.escapeLocationPattern( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-[a-zA-Z0-9_]+\\.ui\\-dev\\.alertlogic\\.com.*$" );
+            expect( locator['escapeLocationPattern']( "https://console.overview.alertlogic.com" ) ).to.equal( "^https:\\/\\/console\\.overview\\.alertlogic\\.com.*$" );
+            expect( locator['escapeLocationPattern']( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-[a-zA-Z0-9_]+\\.ui\\-dev\\.alertlogic\\.com.*$" );
         } );
 
         it( "should properly resolve URI patterns to location nodes", () => {
@@ -53,14 +53,26 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.locTypeId ).to.equal( AlLocation.OverviewUI );
 
             //  Make sure that aliased nodes work, and return a node with the URI pointing to themselves
-            const aliasNodeURL = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
-            const aliasNodeBase = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com";
+            let aliasNodeURL = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
+            let aliasNodeBase = "https://incidents-pr-12.ui-dev.product.dev.alertlogic.com";
             node = locator.getNodeByURI( aliasNodeURL );
             expect( node ).to.be.an( "object" );
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
             expect( node._fullURI ).to.equal( aliasNodeBase );
+            expect( node.uri ).to.equal( aliasNodeBase );
+
+            aliasNodeURL = "https://console.incidents.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
+            aliasNodeBase = "https://console.incidents.product.dev.alertlogic.com";
+            let node2 = locator.getNodeByURI( aliasNodeURL );
+            expect( node2 ).to.be.an( "object" );
+            expect( node ).to.equal( node2 );
+            expect( node.environment ).to.equal( "integration" );
+            expect( node.residency ).to.equal( undefined );
+            expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
+            expect( node._fullURI ).to.equal( aliasNodeBase );
+            expect( node.uri ).to.equal( aliasNodeBase );
         } );
 
         it( "should propertly identify the acting node from the acting URL passed to the constructor", () => {
