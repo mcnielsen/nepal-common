@@ -14,12 +14,12 @@
 export class AlBehaviorPromise<ResultType>
 {
     protected promise:Promise<ResultType>;
-    protected resolver:{(result:ResultType):void};
-    protected rejector:{(error:any):void};
+    protected resolver?:{(result:ResultType):void};
+    protected rejector?:{(error:any):void};
     protected fulfilled:boolean = false;
-    protected value:ResultType = null;
+    protected value:ResultType|null = null;
 
-    constructor( initialValue:ResultType = null ) {
+    constructor( initialValue:ResultType|null = null ) {
         if ( initialValue ) {
             this.value = initialValue;
             this.fulfilled = true;
@@ -35,7 +35,9 @@ export class AlBehaviorPromise<ResultType>
     /**
      * Attaches a resolve/reject listener to the underlying promise.
      */
-    public then( callback, error = undefined ):Promise<any> {       /* NOTE: for some reason, using `ResultType` here breaks compilation.  I have no idea why, but it makes me rather sad :| */
+    public then<TResult1 = ResultType, TResult2 = never>(callback?: ((value: ResultType) => TResult1 | PromiseLike<TResult1>) | undefined | null,
+                                                         error?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null
+    ): Promise<TResult1 | TResult2> {
         return this.promise.then( callback, error );
     }
 
@@ -45,7 +47,9 @@ export class AlBehaviorPromise<ResultType>
     public resolve( result:ResultType ) {
         this.value = result;
         if ( ! this.fulfilled ) {
-            this.resolver( result );
+            if(this.resolver) {
+                this.resolver( result );
+            }
             this.fulfilled = true;
         }
         this.promise = Promise.resolve( result );       //  any further `then`s will be immediately fulfilled with the given value
@@ -57,7 +61,9 @@ export class AlBehaviorPromise<ResultType>
     public reject( reason:any ) {
         this.value = null;
         if ( ! this.fulfilled ) {
-            this.rejector( reason );
+            if(this.rejector){
+                this.rejector( reason );
+            }
             this.fulfilled = true;
         }
         this.promise = Promise.reject( reason );
@@ -80,7 +86,7 @@ export class AlBehaviorPromise<ResultType>
     /**
      * Gets the last resolved value.
      */
-    public getValue():ResultType {
+    public getValue():ResultType|null {
         return this.value;
     }
 

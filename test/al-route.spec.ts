@@ -169,8 +169,8 @@ describe( 'AlRoute', () => {
                 },
                 properties: {}
             } );
-            expect( menu.baseHREF ).to.equal( null );
-            expect( menu.href ).to.equal( null );
+            expect( menu.baseHREF ).to.equal( undefined );
+            expect( menu.href ).to.equal( undefined );
             expect( menu.visible ).to.equal( false );
             expect( warnStub.callCount ).to.equal( 1 );
         } );
@@ -305,7 +305,7 @@ describe( 'AlRoute', () => {
             expect( route2.visible ).to.equal( true );
             expect( route2.activated ).to.equal( false );
 
-            expect( route3.href ).to.equal( null );         // not visible?  no URL
+            expect( route3.href ).to.equal( undefined );         // not visible?  no URL
             expect( route3.visible ).to.equal( false );
             expect( route3.activated ).to.equal( false );
 

@@ -10,7 +10,7 @@ export class AlTriggeredEvent
     public eventTypeName:string;
     public responses:any[] = [];
 
-    constructor( syntheticName:string = null ) {
+    constructor( syntheticName?:string ) {
         this.eventTypeName = syntheticName || this.constructor.name;
     }
 
@@ -40,7 +40,7 @@ export class AlTriggeredEvent
      */
     public anyResponseEquals( targetValue:any ):boolean {
         return this.responses.reduce(   ( accumulated, response ) => {
-                                            return ( accumulated || response === targetValue ) ? true : false;
+                                            return (accumulated || response === targetValue);
                                         },
                                         false );
     }
@@ -50,7 +50,7 @@ export class AlTriggeredEvent
      */
     public anyResponseWith( checkCallback:{(responseValue:any):boolean} ):boolean {
         return this.responses.reduce(   ( accumulated, response ) => {
-                                            return ( accumulated || checkCallback(response) ) ? true : false;
+                                            return (accumulated || checkCallback(response));
                                         },
                                         false );
     }
@@ -61,12 +61,12 @@ export declare type AlTriggeredEventCallback = {(event:AlTriggeredEvent):void|bo
 export class AlTriggerSubscription
 {
     protected active = true;
-    protected filterCb:AlTriggeredEventCallback = null;
+    protected filterCb:AlTriggeredEventCallback|null = null;
 
     constructor( public stream:AlTriggerStream,
                  public eventType:string,
                  public listenerId:string,
-                 public triggerCallback:AlTriggeredEventCallback = null ) {
+                 public triggerCallback?:AlTriggeredEventCallback ) {
     }
 
     then( cb:AlTriggeredEventCallback ):AlTriggerSubscription {
@@ -104,7 +104,7 @@ export class AlTriggerStream
 {
     items:{[triggerType:string]:{[subscriptionId:string]:AlTriggerSubscription}} = {};
     subscriptionCount:number        =   0;
-    downstream:AlTriggerStream      =   null;
+    downstream:AlTriggerStream|null      =   null;
     flowing:boolean                 =   false;
     captured:AlTriggeredEvent[]     =   [];
 
@@ -164,8 +164,10 @@ export class AlTriggerStream
     public tap() {
         this.flowing = true;
         while( this.captured.length > 0 ) {
-            let event = this.captured.shift();
-            this.trigger( event );
+            const event = this.captured.shift();
+            if(event) {
+                this.trigger( event );
+            }
         }
     }
 }
@@ -191,7 +193,7 @@ export class AlSubscriptionGroup
      */
     public manage( item:any|any[] ) {
         if ( typeof( item ) === 'object' && item.length ) {
-            item.map( subitem => this.manage( subitem ) );
+            item.map( (subitem: any) => this.manage( subitem ) );
             return;
         } else if ( typeof( item ) === 'function' ) {
             this.manage( item() );
