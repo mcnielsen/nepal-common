@@ -90,7 +90,10 @@ export class AlLocation
                 environment: 'integration',
                 uri: `https://console.${appCode}.product.dev.alertlogic.com`,
                 aliases: [
-                    `https://${appCode}-pr-*.ui-dev.product.dev.alertlogic.com`,
+                    `https://${appCode}.ui-dev.product.dev.alertlogic.com`,
+                    `https://${appCode}-*.ui-dev.product.dev.alertlogic.com`,
+                    `https://${appCode}-*-*.ui-dev.product.dev.alertlogic.com`,
+                    `https://${appCode}-*-*-*.ui-dev.product.dev.alertlogic.com`,
                     `https://*.o3-${appCode}.product.dev.alertlogic.com`
                 ]
             },
