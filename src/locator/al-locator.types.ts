@@ -127,31 +127,42 @@ export interface AlLocationDescriptor
     _fullURI?:string;               //  Fully calculated URI of the node (for caching purposes)
 }
 
+/**
+ * A dictionary of insight locations (as reported by AIMS and the locations service).
+ */
+export const AlInsightLocations: {[locationId:string]: ({residency: string; residencyCaption: string, alternatives?: string[]; logicalRegion: string});} =
+{
+    "defender-us-denver": {
+        residency: "US",
+        residencyCaption: "UNITED STATES",
+        logicalRegion: "us-west-1"
+    },
+    "defender-us-ashburn": {
+        residency: "US",
+        residencyCaption: "UNITED STATES",
+        logicalRegion: "us-east-1"
+    },
+    "defender-uk-newport": {
+        residency: "EMEA",
+        residencyCaption: "UNITED KINGDOM",
+        logicalRegion: "uk-west-1"
+    },
+    "insight-us-virginia": {
+        residency: "US",
+        residencyCaption: "UNITED STATES",
+        alternatives: [ "defender-us-denver", "defender-us-ashburn" ],
+        logicalRegion: "us-east-1"
+    },
+    "insight-eu-ireland": {
+        residency: "EMEA",
+        residencyCaption: "UNITED KINGDOM",
+        alternatives: [ "defender-uk-newport" ],
+        logicalRegion: "uk-west-1"
+    }
+};
+
 export class AlLocatorMatrix
 {
-    protected static insightLocations: {[i:string]: ({residency: string; alternatives?: string[]; logicalRegion?: string});} = {
-        "defender-us-denver": {
-            residency: "US",
-            logicalRegion: "us-west-1"
-        },
-        "defender-us-ashburn": {
-            residency: "US",
-            logicalRegion: "us-east-1"
-        },
-        "defender-uk-newport": {
-            residency: "EMEA",
-            logicalRegion: "uk-west-1"
-        },
-        "insight-us-virginia": {
-            residency: "US",
-            alternatives: [ "defender-us-denver", "defender-us-ashburn" ]
-        },
-        "insight-eu-ireland": {
-            residency: "EMEA",
-            alternatives: [ "defender-uk-newport" ]
-        }
-    };
-
     protected actingUri:string|null = null;
     protected actor:AlLocationDescriptor|null = null;
 
@@ -472,10 +483,10 @@ export class AlLocatorMatrix
         if ( ! this.context.insightLocationId || ! this.context.accessible ) {
             return;
         }
-        if ( ! AlLocatorMatrix.insightLocations.hasOwnProperty( this.context.insightLocationId ) ) {
+        if ( ! AlInsightLocations.hasOwnProperty( this.context.insightLocationId ) ) {
             return;
         }
-        const insightLocation = AlLocatorMatrix.insightLocations[this.context.insightLocationId];
+        const insightLocation = AlInsightLocations[this.context.insightLocationId];
         if ( insightLocation.alternatives ) {
             let selected = null;
             for ( let i = 0; i < insightLocation.alternatives.length; i++ ) {
