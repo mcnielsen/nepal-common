@@ -181,7 +181,7 @@ export class AlSubscriptionGroup
 {
     subscriptions:any[] = [];
 
-    constructor( item:any|any[] ) {
+    constructor( ...item:any|any[] ) {
         if ( item ) {
             this.manage( item );
         }
@@ -191,7 +191,7 @@ export class AlSubscriptionGroup
      * Adds one or more subscriptions (as themselves, in arrays, via callback function, or some mixture of these inputs)
      * to the internal list of managed items.
      */
-    public manage( item:any|any[] ) {
+    public manage( ...item:any|any[] ) {
         if ( typeof( item ) === 'object' && item.length ) {
             item.map( (subitem: any) => this.manage( subitem ) );
             return;

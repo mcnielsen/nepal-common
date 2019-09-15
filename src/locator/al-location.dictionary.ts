@@ -82,7 +82,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'US',
         uiCaption: 'us-west-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -97,7 +97,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'EMEA',
         uiCaption: 'uk-west-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -112,7 +112,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'US',
         uiCaption: 'us-east-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -127,7 +127,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'US',
         uiCaption: 'us-east-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -142,7 +142,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         uiCaption: 'us-east-1',
         residency: 'US',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },

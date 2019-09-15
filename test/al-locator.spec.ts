@@ -1,51 +1,30 @@
 import { expect } from 'chai';
 import { describe, before } from 'mocha';
-import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorMatrix } from '../src/locator';
+import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorMatrix, AlLocationDictionary } from '../src/locator';
 
 describe( 'AlLocatorMatrix', () => {
 
-    const nodes:AlLocationDescriptor[] = [
-        ...AlLocation.uiNode( AlLocation.OverviewUI, 'overview', 4213 ),
-        ...AlLocation.uiNode( AlLocation.IncidentsUI, 'incidents', 8001 ),
-        {
-            locTypeId: AlLocation.LegacyUI,
-            insightLocationId: "defender-us-denver",
-            uri: 'https://console.clouddefender.alertlogic.com',
-            residency: 'US',
-            environment: 'production'
-        },
-        {
-            locTypeId: AlLocation.LegacyUI,
-            insightLocationId: "defender-us-ashburn",
-            uri: 'https://console.alertlogic.net',
-            residency: 'US',
-            environment: 'production'
-        },
-        {
-            locTypeId: AlLocation.LegacyUI,
-            insightLocationId: "defender-uk-newport",
-            uri: 'https://console.alertlogic.co.uk',
-            residency: 'EMEA',
-            environment: 'production'
-        }
-    ];
+    let locator:AlLocatorMatrix;
+    const locationDictionary = JSON.parse( JSON.stringify( AlLocationDictionary ) );       //  cheap and easy clone
+
+    beforeEach( () => {
+        locator = new AlLocatorMatrix(  locationDictionary,
+                                        "https://console.incidents.product.dev.alertlogic.com/#/summary/2?aaid=2&locid=defender-us-denver",
+                                        { insightLocationId: "defender-us-defender", accessible: [ "defender-us-denver", "insight-us-virginia" ] } );
+    } );
 
     describe( 'utility methods', () => {
-        let locator:AlLocatorMatrix;
-        beforeEach( () => {
-            locator = new AlLocatorMatrix(  nodes,
-                                            "https://console.incidents.product.dev.alertlogic.com/#/summary/2?aaid=2&locid=defender-us-denver",
-                                            { insightLocationId: "defender-us-defender", accessible: [ "defender-us-denver", "insight-us-virginia" ] } );
-        } );
 
+        it( "should propertly calculate the base from a complex URL", () => {
+            expect( locator["getBaseUrl"]( "https://lmgtfy.com/?q=cache+miss" ) ).to.equal( "https://lmgtfy.com" );
+            expect( locator["getBaseUrl"]( "https://console.overview.alertlogic.com/#/remediations-scan-status/2" ) ).to.equal("https://console.overview.alertlogic.com" );
+        } );
         it( "should escape uri patterns in the expected way", () => {
             expect( locator['escapeLocationPattern']( "https://console.overview.alertlogic.com" ) ).to.equal( "^https:\\/\\/console\\.overview\\.alertlogic\\.com.*$" );
-            expect( locator['escapeLocationPattern']( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-[a-zA-Z0-9_]+\\.ui\\-dev\\.alertlogic\\.com.*$" );
+            expect( locator['escapeLocationPattern']( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-([a-zA-Z0-9_]+)\\.ui\\-dev\\.alertlogic\\.com.*$" );
         } );
 
         it( "should properly resolve URI patterns to location nodes", () => {
-            locator.setLocations( nodes );
-
             let node = locator.getNodeByURI( "https://console.overview.alertlogic.co.uk/#/remediations-scan-status/2" );
             expect( node ).to.be.an( "object" );
             expect( node.environment ).to.equal( "production" );
@@ -60,9 +39,9 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
-            expect( node._fullURI ).to.equal( aliasNodeBase );
             expect( node.uri ).to.equal( aliasNodeBase );
 
+            //  This should match the same node as above, but change the URL back to the canonical console.incidents.product.dev.alertlogic.com
             aliasNodeURL = "https://console.incidents.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
             aliasNodeBase = "https://console.incidents.product.dev.alertlogic.com";
             let node2 = locator.getNodeByURI( aliasNodeURL );
@@ -71,11 +50,23 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
-            expect( node._fullURI ).to.equal( aliasNodeBase );
+            expect( node.uri ).to.equal( aliasNodeBase );
+
+            //  Beta navigation environment match
+            aliasNodeURL = "https://incidents-beta-navigation.ui-dev.product.dev.alertlogic.com/#/summary/12345678?aaid=12345678&locid=defender-uk-newport";
+            aliasNodeBase = "https://incidents-beta-navigation.ui-dev.product.dev.alertlogic.com";
+            node = locator.getNodeByURI( aliasNodeURL );
+            expect( node ).to.be.an( "object" );
+            expect( node.environment ).to.equal( "beta-navigation" );
+            expect( node.residency ).to.equal( "US" );
+            expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
             expect( node.uri ).to.equal( aliasNodeBase );
         } );
 
         it( "should propertly identify the acting node from the acting URL passed to the constructor", () => {
+            locator = new AlLocatorMatrix(  locationDictionary,
+                                            "https://console.incidents.product.dev.alertlogic.com/#/summary/2?aaid=2&locid=defender-us-denver",
+                                            { insightLocationId: "defender-us-defender", accessible: [ "defender-us-denver", "insight-us-virginia" ] } );
             let actor = locator.getActingNode();
             expect( actor ).to.be.an( 'object' );
             expect( actor.locTypeId ).to.equal( AlLocation.IncidentsUI );
@@ -94,6 +85,10 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.residency ).to.equal( 'US' );
             expect( node.environment ).to.equal( 'production' );
             expect( node.insightLocationId ).to.equal( 'defender-us-denver' );
+
+            //  This really just covers a few miscellaneous paths that should never occur in nature...
+            locator.setContext( { environment: "some-other-environment", accessible: [ "defender-us-denver"] } );
+            node = locator.getNode( AlLocation.OverviewUI, { accessible: [ "defender-us-denver" ] } );
         } );
 
         it( "should normalize insight locations to defender ones", () => {
@@ -116,21 +111,19 @@ describe( 'AlLocatorMatrix', () => {
     } );
 
     describe( 'given production-like location descriptors for the overview application', () => {
-        let locator:AlLocatorMatrix;
-        beforeEach( () => {
-            locator = new AlLocatorMatrix();
-        } );
-
         it("should infer the right context information and matching sibling nodes for each acting URL", () => {
             let context = locator.getContext();
             let matching:AlLocationDescriptor = null;
 
             //  Default values
+            locator.setActingUri( 'https://console.overview.alertlogic.com/#/remediations-scan-status/2' );
             expect( context.environment ).to.equal( 'production' );
             expect( context.residency ).to.equal( 'US' );
 
-            //  Populate with nodes!
-            locator.setLocations( nodes );
+            //  Null (clears actor).  Because, evidently, Kevin likes `null` A LOT.
+            locator.setActingUri( null );
+            expect( locator['actingUri'] ).to.equal( null );
+            expect( locator['actor'] ).to.equal( null );
 
             //  Context inferred from default URL, which won't be recognized
             locator.setActingUri( true );
@@ -192,8 +185,8 @@ describe( 'AlLocatorMatrix', () => {
         } );
 
         it("should allow nodes to be searched", () => {
-            locator.setLocations( nodes );
             const matches = locator.search( loc => loc.locTypeId === AlLocation.OverviewUI ? true : false );
+            expect( matches.length ).to.be.above( 0 );
 
             const match = locator.findOne( loc => loc.locTypeId === AlLocation.OverviewUI && loc.residency === 'EMEA' ? true : false );
             expect( match ).to.be.an( 'object' );
@@ -203,7 +196,6 @@ describe( 'AlLocatorMatrix', () => {
         } );
 
         it("should allow nodes to be retrieved by URI", () => {
-            locator.setLocations( nodes );
             let match:AlLocationDescriptor = null;
 
             match = locator.getNodeByURI( "http://localhost:8001/#/some/arbitrary/path" );
@@ -221,6 +213,82 @@ describe( 'AlLocatorMatrix', () => {
             expect( match ).to.equal( null );
         } );
 
+    } );
+
+    describe( "resolveURI method", () => {
+        it("should generate accurate URLs for a given context", () => {
+            let uri;
+
+            uri = locator.resolveURL( AlLocation.OverviewUI, '/#/some/path', { residency: 'US', environment: 'production' } );
+            expect( uri ).to.equal( "https://console.overview.alertlogic.com/#/some/path" );
+
+            uri = locator.resolveURL( AlLocation.IncidentsUI, '/#/some/path', { residency: 'EMEA', environment: 'production' } );
+            expect( uri ).to.equal( "https://console.incidents.alertlogic.co.uk/#/some/path" );
+
+            uri = locator.resolveURL( AlLocation.ExposuresUI, '/#/some/path', { residency: 'US', environment: 'beta-navigation' } );
+            expect( uri ).to.equal( "https://exposures-beta-navigation.ui-dev.product.dev.alertlogic.com/#/some/path" );
+
+            uri = locator.resolveURL( AlLocation.SearchUI, undefined, { residency: 'US', environment: 'integration' } );
+            expect( uri ).to.equal( "https://console.search.product.dev.alertlogic.com" );
+
+            uri = locator.resolveURL( AlLocation.DashboardsUI, '/#/some/path', { residency: 'US', environment: 'development' } );
+            expect( uri ).to.equal( "http://localhost:7001/#/some/path" );
+
+            //  Now, we test alias binding in conjunction with URL resolution.  This should update the official integration incidents node to point to the alias.
+            locator.setActingUri( "https://incidents-pr-9.ui-dev.product.dev.alertlogic.com" );
+
+            uri = locator.resolveURL( AlLocation.IncidentsUI, '/#/summary/1', { environment: 'production', residency: 'US' } );
+            expect( uri ).to.equal( "https://console.incidents.alertlogic.com/#/summary/1" );
+            uri = locator.resolveURL( AlLocation.IncidentsUI, '/#/summary/1', { environment: 'integration' } );
+            expect( uri ).to.equal( "https://incidents-pr-9.ui-dev.product.dev.alertlogic.com/#/summary/1" );
+        } );
+
+        it( "should use window.location if the node isn't recognized", () => {
+            let uri = locator.resolveURL( "SomethingUnrecognizable", '/#/arbitrary', { residency: "US", environment: "production" } );
+            expect( uri ).to.equal( window.location.origin + ( ( window.location.pathname && window.location.pathname.length > 1 ) ? window.location.pathname : '' ) + "/#/arbitrary" );
+        } );
+
+        it( "should prefix auth0 node with https", () => {
+            let uri = locator.resolveURL( AlLocation.Auth0 );
+            expect( uri ).to.equal( "https://alertlogic.auth0.com" );
+        } );
+    } );
+
+    describe( "resolution by URI", () => {
+        it("should be blazingly fast", () => {
+            const iterations = 1000;
+            const getRandomURI = () => {
+                if ( Math.random() <= 0.7 ) {
+                    //  70% of random URLs with an arbitrary path
+                    let node = locationDictionary[ Math.floor( Math.random() * locationDictionary.length ) ];
+                    let url = node.uri;
+                    if ( url.indexOf("http" ) !== 0 ) {
+                        url = `https://${url}`;
+                    }
+                    url += '/#/something/12345678/else/ABCD1234';
+                    return url;
+                } else {
+                    //  30% aliases and cache misses.  These will test the outside edges of pattern matching, and should be the worst-performing lookups.
+                    let urls = [
+                        "https://exposures.ui-dev.product.dev.alertlogic.com",                      //  canonical alias
+                        "https://overview-beta-navigation.ui-dev.product.dev.alertlogic.com",       //  feature-branch alias
+                        "https://remediations-pr-15.ui-dev.product.dev.alertlogic.com",             //  PR demo bucket alias
+                        "https://12.o3-search.product.dev.alertlogic.com",                          //  old-fashioned demo bucket alias (soon to be deprecated)
+                        "https://lmgtfy.com/?q=cache+miss",                                         //  cache failure test
+                        "http://web.archive.org/web/20090814040542/http://blog.voidblossom.com/2008/12/15/winter-festivities-the-milk-of-human-crankiness/"     //  another cache failure test, with sass
+                    ];
+                    return urls[ Math.floor( Math.random() * urls.length ) ];
+                }
+            };
+            for ( let i = 0; i < iterations; i++ ) {
+                let node = locator.getNodeByURI( getRandomURI() );
+            }
+            let averageLookup = AlLocatorMatrix.totalTime / AlLocatorMatrix.totalSeeks;
+            console.log(`Average lookup time: ${averageLookup}ms (${AlLocatorMatrix.totalSeeks} lookups)` );
+
+            //  Average lookup time SHOULD be less than 0.1 ms (actually, a great deal faster than that).  If it's slower, something is wrong!
+            expect( averageLookup ).to.be.below( 0.1 );
+        } );
     } );
 
 } );
