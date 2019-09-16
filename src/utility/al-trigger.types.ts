@@ -181,25 +181,24 @@ export class AlSubscriptionGroup
 {
     subscriptions:any[] = [];
 
-    constructor( ...item:any|any[] ) {
-        if ( item ) {
-            this.manage( item );
-        }
+    constructor( ...items:any[] ) {
+        this.manage( ...items );
     }
 
     /**
      * Adds one or more subscriptions (as themselves, in arrays, via callback function, or some mixture of these inputs)
      * to the internal list of managed items.
      */
-    public manage( ...item:any|any[] ) {
-        if ( typeof( item ) === 'object' && item.length ) {
-            item.map( (subitem: any) => this.manage( subitem ) );
-            return;
-        } else if ( typeof( item ) === 'function' ) {
-            this.manage( item() );
-            return;
-        }
-        this.subscriptions.push( item );
+    public manage( ...items:any[] ) {
+        items.forEach( item => {
+            if ( typeof( item ) === 'object' && item !== null && item.hasOwnProperty( "length" ) ) {
+                item.map( (subitem: any) => this.manage( subitem ) );
+            } else if ( typeof( item ) === 'function' ) {
+                this.manage( item() );
+            } else if ( item ) {
+                this.subscriptions.push( item );
+            }
+        } );
     }
 
     /**
