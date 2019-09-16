@@ -303,7 +303,7 @@ export class AlLocatorMatrix
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
         nodes.forEach( node => {
-            const environments:string[] = node.hasOwnProperty( "environment" ) ? node.environment.split("|") : [ 'default' ];
+            const environments:string[] = typeof( node.environment ) !== 'undefined' ? node.environment.split("|") : [ 'default' ];
             environments.forEach( environment => {
 
                 //  These are the hash keys
