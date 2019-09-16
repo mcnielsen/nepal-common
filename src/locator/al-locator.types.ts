@@ -77,13 +77,22 @@ export class AlLocation
                 locTypeId: locTypeId,
                 environment: 'production',
                 residency: 'US',
-                uri: `https://console.${appCode}.alertlogic.com`
+                uri: `https://console.${appCode}.alertlogic.com`,
+                keyword: appCode
             },
             {
                 locTypeId: locTypeId,
                 environment: 'production',
                 residency: 'EMEA',
-                uri: `https://console.${appCode}.alertlogic.co.uk`
+                uri: `https://console.${appCode}.alertlogic.co.uk`,
+                keyword: appCode
+            },
+            {
+                locTypeId: locTypeId,
+                environment: 'beta-navigation',
+                residency: 'US',
+                uri: `https://${appCode}-beta-navigation.ui-dev.product.dev.alertlogic.com`,
+                keyword: appCode
             },
             {
                 locTypeId: locTypeId,
@@ -92,15 +101,16 @@ export class AlLocation
                 aliases: [
                     `https://${appCode}.ui-dev.product.dev.alertlogic.com`,
                     `https://${appCode}-*.ui-dev.product.dev.alertlogic.com`,
-                    `https://${appCode}-*-*.ui-dev.product.dev.alertlogic.com`,
-                    `https://${appCode}-*-*-*.ui-dev.product.dev.alertlogic.com`,
+                    `https://${appCode}-pr-*.ui-dev.product.dev.alertlogic.com`,
                     `https://*.o3-${appCode}.product.dev.alertlogic.com`
-                ]
+                ],
+                keyword: appCode
             },
             {
                 locTypeId: locTypeId,
                 environment: 'development',
-                uri: `http://localhost:${devPort}`
+                uri: `http://localhost:${devPort}`,
+                keyword: 'localhost'
             }
         ];
     }
@@ -113,7 +123,6 @@ export class AlLocation
 export interface AlLocationDescriptor
 {
     locTypeId:string;               //  This should correspond to one of the ALLocation string constants, e.g., AlLocation.AccountsUI or AlLocation.GlobalAPI.
-    parentId?:string;               //  If the given node is a child of another node, this is the parent's ID
     insightLocationId?:string;      //  The location ID as defined by the global locations service -- e.g., 'defender-us-ashburn' or 'insight-eu-ireland'.
     uri:string;                     //  URI of the entity
     residency?:string;              //  A data residency domain
@@ -124,10 +133,10 @@ export interface AlLocationDescriptor
     aspect?:string;                 //  'ui' or 'api'
 
     uiCaption?:string;
-    uiEntryPoint?:any;
+    uiEntryPoint?:{locTypeId:string, path?:string};
     data?:any;                      //  Miscellaneous associated data
-
-    _fullURI?:string;               //  Fully calculated URI of the node (for caching purposes)
+    weight?:number;                 //  Relative weight for resolution by URI.  In general, the more significant a node is the lower its weight should be.
+    keyword?:string;                //
 }
 
 /**
@@ -164,14 +173,24 @@ export const AlInsightLocations: {[locationId:string]: ({residency: string; resi
     }
 };
 
+type UriMappingItem =
+{
+    location:AlLocationDescriptor,
+    matcher?:RegExp,
+    matchExpression:string
+};
+
 export class AlLocatorMatrix
 {
-    protected actingUri:string|null = null;
-    protected actor:AlLocationDescriptor|null = null;
+    public static totalTime = 0;
+    public static totalSeeks = 0;
 
-    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
+    protected actingUri:string|undefined = undefined;
+    protected actor:AlLocationDescriptor|undefined = undefined;
+
+    protected uriMap:{[pattern:string]:UriMappingItem[]} = {};
     protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
-    protected _nodeMap:{[hashKey:string]:AlLocationDescriptor} = {};
+    protected nodeDictionary:{[hashKey:string]:AlLocationDescriptor} = {};
 
     protected context:AlLocationContext = {
         environment:        "production",
@@ -201,8 +220,14 @@ export class AlLocatorMatrix
         const loc = this.getNode( locTypeId, context );
         let url:string;
         if ( loc ) {
-            url = this.resolveNodeURI( loc );
+            url = loc.uri;
+            //  For historical reasons, some nodes (like auth0) are represented without protocols (e.g., alertlogic-integration.auth0.com instead of https://alertlogic-integration.auth0.com).
+            //  For the purposes of resolving functional links, detect these protocolless domains and add the default https:// protocol to them.
+            if ( ! url.startsWith("http") ) {
+                url = `https://${url}`;
+            }
         } else {
+            /* istanbul ignore else */
             if ( typeof( window ) !== 'undefined' ) {
                 url = window.location.origin + ( ( window.location.pathname && window.location.pathname.length > 1 ) ? window.location.pathname : '' );
             } else {
@@ -218,80 +243,114 @@ export class AlLocatorMatrix
     /**
      *  Resolves a literal URI to a service node.
      */
-    public getNodeByURI( targetURI:string ):AlLocationDescriptor|null {
-        for ( let k in this.uriMap ) {
-            const mapping = this.uriMap[k];
-            if ( mapping.matcher.test( targetURI ) ) {
-                let baseUrl = this.getBaseUrl( targetURI );
-                if ( baseUrl !== mapping.location.uri ) {
-                    mapping.location.uri = baseUrl;
-                    mapping.location._fullURI = baseUrl;     // Use this specific base URL for resolving other links to this application type
-                    console.log(`Notice: using [${baseUrl}] as a base URI for location type '${mapping.location.locTypeId}'`);
+    public getNodeByURI( targetURI:string ):AlLocationDescriptor|undefined {
+        let start = this.timestamp(0);
+        let result:AlLocationDescriptor|undefined = undefined;
+        Object.entries( this.uriMap ).find( ( [ keyword, candidates ] ) => {
+            if ( targetURI.includes( keyword ) ) {
+                let hit = candidates.find( candidate => {
+                    if ( targetURI.startsWith( candidate.matchExpression ) ) {
+                        return true;        //  exact match
+                    }
+                    if ( ! candidate.matcher ) {
+                        candidate.matcher = new RegExp( this.escapeLocationPattern( candidate.matchExpression ) );
+                    }
+                    if ( candidate.matcher.test( targetURI ) ) {
+                        return true;        //  matched by regular expression
+                    }
+                    return false;
+                } );
+                if ( hit ) {
+                    result = hit.location;
+                    const baseUrl = this.getBaseUrl( targetURI );
+                    if ( baseUrl !== result.uri ) {
+                        result.uri = baseUrl;
+                    }
+                    return true;
                 }
-                return mapping.location;
             }
-        }
-        return null;
+            return false;
+        } );
+
+        let duration = this.timestamp( 1000 ) - start;
+        AlLocatorMatrix.totalTime += duration;
+        AlLocatorMatrix.totalSeeks++;
+
+        return result;
     }
 
     /**
      *  Gets the currently acting node.
      */
-    public getActingNode():AlLocationDescriptor|null {
+    public getActingNode():AlLocationDescriptor|undefined {
         return this.actor;
     }
 
     /**
-     *  Recursively resolves the URI of a service node.
+     *  Nested nodes (e.g., an application living inside another application) are official dead, making this method
+     *  @deprecated.
      */
-    public resolveNodeURI( node:AlLocationDescriptor, context?:AlLocationContext ):string {
-        if ( node._fullURI ) {
-            return node._fullURI;
-        }
-        let uri = '';
-        if ( node.parentId ) {
-            const parentNode = this.getNode( node.parentId, context );
-            if(parentNode) {
-                uri += this.resolveNodeURI( parentNode, context );
-            }
-        }
-        if ( node.uri ) {
-            uri += node.uri;
-            if ( ! node.parentId ) {
-                //  For historical reasons, some nodes (like auth0) are represented without protocols (e.g., alertlogic-integration.auth0.com instead of https://alertlogic-integration.auth0.com).
-                //  For the purposes of resolving functional links, detect these protocolless domains and add the default https:// protocol to them.
-                if ( uri.indexOf("http") !== 0 ) {
-                    uri = "https://" + uri;
-                }
-            }
-        }
-        node._fullURI = uri;
-        return uri;
+    /* tslint:disable:no-unused-variable */
+    public resolveNodeURI( node:AlLocationDescriptor ):string {
+        console.warn("Deprecation warning: please do not use resolveNodeURI directly; just use the location's 'uri' property." );
+        return node.uri;
     }
 
     /**
-     *  Updates the service matrix model with a set of service node descriptors.  Optionally
-     *  calculates which node is the acting node based on its URI.
+     *  Updates the locator matrix model with a set of service node descriptors.
      *
      *  @param {Array} nodes A list of service node descriptors.
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
+        nodes.forEach( node => {
+            const environments:string[] = node.hasOwnProperty( "environment" ) ? node.environment.split("|") : [ 'default' ];
+            environments.forEach( environment => {
 
-        if ( nodes ) {
-            for ( let i = 0; i < nodes.length; i++ ) {
-                this.saveNode( nodes[i] );
-            }
-        }
+                //  These are the hash keys
+                this.nodeDictionary[`${node.locTypeId}-*-*`] = node;
+                this.nodeDictionary[`${node.locTypeId}-${environment}-*`] = node;
+                if ( node.residency ) {
+                    this.nodeDictionary[`${node.locTypeId}-${environment}-${node.residency}`] = node;
+                    if ( node.insightLocationId ) {
+                        this.nodeDictionary[`${node.locTypeId}-${environment}-${node.residency}-${node.insightLocationId}`] = node;
+                    }
+                }
+
+                const keyword = node.keyword || node.uri;
+                if ( ! this.uriMap.hasOwnProperty( keyword ) ) {
+                    this.uriMap[keyword] = [];
+                }
+
+                this.uriMap[keyword].push( {
+                    location: node,
+                    matchExpression: node.uri
+                } );
+
+                if ( node.aliases ) {
+                    node.aliases.forEach( alias => {
+                        this.uriMap[keyword].push( {
+                            location: node,
+                            matchExpression: alias
+                        } );
+                    } );
+                }
+            } );
+        } );
+
+        Object.values( this.uriMap ).forEach( candidates => {
+            candidates.sort( ( a, b ) => ( a.location.weight || 0 ) - ( b.location.weight || 0 ) );
+        } );
     }
 
-    public setActingUri( actingUri:string|boolean ) {
-        if ( actingUri === null ) {
-            this.actingUri = null;
-            this.actor = null;
+    public setActingUri( actingUri:string|boolean|undefined ) {
+        if ( actingUri === undefined ) {
+            this.actingUri = undefined;
+            this.actor = undefined;
             return;
         }
 
         if ( typeof( actingUri ) === 'boolean' ) {
+            /* istanbul ignore else */
             if ( typeof( window ) !== 'undefined' ) {
                 actingUri = window.location.origin + ( ( window.location.pathname && window.location.pathname.length > 1 ) ? window.location.pathname : '' );
             } else {
@@ -311,30 +370,23 @@ export class AlLocatorMatrix
                     environment: this.actor.environment || this.context.environment,
                     residency: this.actor.residency || this.context.residency
                 } );
+            } else {
+                this.setContext( {
+                    environment:        "production",
+                    residency:          "US",
+                    insightLocationId:  undefined,
+                    accessible:         undefined
+                } );
             }
         }
     }
 
     public search( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor[] {
-        let results = [];
-        for ( let k in this._nodeMap ) {
-            if ( ! this._nodeMap.hasOwnProperty( k ) ) {
-                continue;
-            }
-            if ( filter( this._nodeMap[k] ) ) {
-                results.push( this._nodeMap[k] );
-            }
-        }
-
-        return results;
+        return Object.values( this.nodeDictionary ).filter( filter );
     }
 
-    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor|null {
-        let results = this.search( filter );
-        if ( results.length === 0 ) {
-            return null;
-        }
-        return results[0];
+    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor|undefined {
+        return Object.values( this.nodeDictionary ).find( filter );
     }
 
     /**
@@ -345,6 +397,7 @@ export class AlLocatorMatrix
         this.nodes = {};    //  flush lookup cache
         this.context.insightLocationId = context && context.insightLocationId ? context.insightLocationId : this.context.insightLocationId;
         this.context.accessible = context && context.accessible && context.accessible.length ? context.accessible : this.context.accessible;
+        /* istanbul ignore next */
         if ( this.context.insightLocationId ) {
             let locationNode = this.findOne( n => { return n.insightLocationId === this.context.insightLocationId; } );
             if ( locationNode && locationNode.residency ) {
@@ -363,7 +416,7 @@ export class AlLocatorMatrix
 
     /**
      *  Gets a service node by ID, optionally using a context to refine its selection logic.  The context defaults
-     *  to the service matrix instance's current context; if the default is used, the result of the lookup will be stored
+     *  to the locator matrix instance's current context; if the default is used, the result of the lookup will be stored
      *  for performance optimization.
      *
      *  @param {string} locTypeId The ID of the service node to select.  See al-service-identity.ts for constant values.
@@ -382,8 +435,8 @@ export class AlLocatorMatrix
         let node = null;
 
         if ( insightLocationId ) {
-            if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${insightLocationId}` ) ) {
-                node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${insightLocationId}`];
+            if ( this.nodeDictionary.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${insightLocationId}` ) ) {
+                node = this.nodeDictionary[`${locTypeId}-${environment}-${residency}-${insightLocationId}`];
             }
         }
 
@@ -391,20 +444,20 @@ export class AlLocatorMatrix
             for ( let i = 0; i < accessible.length; i++ ) {
                 let accessibleLocationId = accessible[i];
                 if ( accessibleLocationId !== insightLocationId ) {
-                    if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${accessibleLocationId}` ) ) {
-                        node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${accessibleLocationId}`];
+                    if ( this.nodeDictionary.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${accessibleLocationId}` ) ) {
+                        node = this.nodeDictionary[`${locTypeId}-${environment}-${residency}-${accessibleLocationId}`];
                     }
                 }
             }
         }
-        if ( ! node && environment && residency && this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}`) ) {
-            node = this._nodeMap[`${locTypeId}-${environment}-${residency}`];
+        if ( ! node && environment && residency && this.nodeDictionary.hasOwnProperty( `${locTypeId}-${environment}-${residency}`) ) {
+            node = this.nodeDictionary[`${locTypeId}-${environment}-${residency}`];
         }
-        if ( ! node && environment && this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-*`) ) {
-            node = this._nodeMap[`${locTypeId}-${environment}-*`];
+        if ( ! node && environment && this.nodeDictionary.hasOwnProperty( `${locTypeId}-${environment}-*`) ) {
+            node = this.nodeDictionary[`${locTypeId}-${environment}-*`];
         }
-        if ( ! node && this._nodeMap.hasOwnProperty( `${locTypeId}-*-*`) ) {
-            node = this._nodeMap[`${locTypeId}-*-*`];
+        if ( ! node && this.nodeDictionary.hasOwnProperty( `${locTypeId}-*-*`) ) {
+            node = this.nodeDictionary[`${locTypeId}-*-*`];
         }
         if ( node && ! context ) {
             //  Save it in a dictionary for faster lookup next time
@@ -415,48 +468,13 @@ export class AlLocatorMatrix
     }
 
     /**
-     *  Saves a node (including hash lookups).
-     */
-    protected saveNode( node:AlLocationDescriptor ) {
-        if ( node.environment && node.residency ) {
-            if ( node.insightLocationId ) {
-                this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}-${node.insightLocationId}`] = node;
-            }
-            this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}`] = node;
-        }
-        if ( node.environment ) {
-            this._nodeMap[`${node.locTypeId}-${node.environment}-*`] = node;
-        }
-        this._nodeMap[`${node.locTypeId}-*-*`] = node;
-        this.addUriMapping( node );
-    }
-
-    /**
-     * Adds pattern maches for a node's domain and domain aliases, so that URLs can be easily and efficiently mapped back to their nodes
-     */
-    protected addUriMapping( node:AlLocationDescriptor ) {
-        let pattern:string;
-
-        if ( typeof( node.uri ) === 'string' && node.uri.length > 0 ) {
-            let pattern = this.escapeLocationPattern( node.uri );
-            this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node };
-        }
-        if ( node.aliases ) {
-            node.aliases.map( alias => {
-                pattern = this.escapeLocationPattern( alias );
-                this.uriMap[pattern] = { matcher: new RegExp( pattern ), location: node };
-            } );
-        }
-    }
-
-    /**
      * Escapes a domain pattern.
      *
      * All normal regex characters are escaped; * is converted to [a-zA-Z0-9_]+; and the whole expression is wrapped in ^....*$.
      */
     protected escapeLocationPattern( uri:string ):string {
         let pattern = "^" + uri.replace(/[-\/\\^$.()|[\]{}]/g, '\\$&');     //  escape all regexp characters except *, add anchor
-        pattern = pattern.replace( /\*/, "[a-zA-Z0-9_]+" );                 //  convert * wildcard into group match with 1 or more characters
+        pattern = pattern.replace( /\*/g, "([a-zA-Z0-9_\-]+)" );            //  convert * wildcard into group match with 1 or more characters
         pattern += ".*$";                                                   //  add filler and terminus anchor
         return pattern;
     }
@@ -509,5 +527,9 @@ export class AlLocatorMatrix
             //  Location IDs have higher specificity than residency settings, so given defender-uk-newport and residency: US, the residency should be overridden to reflect EMEA.
             this.context.residency = insightLocation.residency;
         }
+    }
+
+    protected timestamp( defaultValue:number ):number {
+        return window && window.hasOwnProperty("performance") ? window.performance.now() : defaultValue;
     }
 }

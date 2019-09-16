@@ -20,15 +20,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global-integration.product.dev.alertlogic.com',
-        environment: 'integration'
-    },
-    {
-        locTypeId: AlLocation.GlobalAPI,
-        insightLocationId: 'insight-global',
-        productType: 'insight',
-        aspect: 'api',
-        uri: 'https://api.global-integration.product.dev.alertlogic.com',
-        environment: 'development'
+        environment: 'integration|beta-navigation|development'
     },
 
     /**
@@ -42,7 +34,6 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         environment: 'production',
         residency: 'US'
     },
-
     {
         locTypeId: AlLocation.InsightAPI,
         productType: 'insight',
@@ -51,22 +42,13 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         environment: 'production',
         residency: 'EMEA'
     },
-
     {
         locTypeId: AlLocation.InsightAPI,
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.product.dev.alertlogic.com',
-        environment: 'integration',
+        environment: 'integration|beta-navigation|development',
         residency: 'US'
-    },
-
-    {
-        locTypeId: AlLocation.InsightAPI,
-        productType: 'insight',
-        aspect: 'api',
-        uri: 'https://api.product.dev.alertlogic.com',
-        environment: 'development'
     },
 
     /**
@@ -82,7 +64,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'US',
         uiCaption: 'us-west-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -97,7 +79,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'EMEA',
         uiCaption: 'uk-west-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -112,7 +94,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         residency: 'US',
         uiCaption: 'us-east-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -123,26 +105,11 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://cd-integration-console.alertlogic.net',
-        environment: 'integration',
+        environment: 'integration|beta-navigation|development',
         residency: 'US',
         uiCaption: 'us-east-1',
         uiEntryPoint: {
-          site: AlLocation.OverviewUI,
-          path: '/#/'
-        }
-    },
-
-    {
-        locTypeId: AlLocation.LegacyUI,
-        insightLocationId: 'defender-us-ashburn',
-        productType: 'defender',
-        aspect: 'ui',
-        uri: 'https://cd-integration-console.alertlogic.net',
-        environment: 'development',
-        uiCaption: 'us-east-1',
-        residency: 'US',
-        uiEntryPoint: {
-          site: AlLocation.OverviewUI,
+          locTypeId: AlLocation.OverviewUI,
           path: '/#/'
         }
     },
@@ -184,12 +151,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     {
         locTypeId: AlLocation.InsightBI,
         uri: 'https://bi.product.dev.alertlogic.com',
-        environment: 'integration'
-    },
-    {
-        locTypeId: AlLocation.InsightBI,
-        uri: 'https://bi.product.dev.alertlogic.com',
-        environment: 'development'
+        environment: 'integration|beta-navigation|development'
     },
 
     /**

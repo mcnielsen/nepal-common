@@ -43,6 +43,7 @@ export interface AlRoutingHost
  * debugging, and placeholder or empty menu structures.
  */
 /* tslint:disable:variable-name */
+/* istanbul ignore next */
 export const AlNullRoutingHost = {
     currentUrl: '',
     routeParameters: {} as {[i:string]:string},
@@ -352,7 +353,7 @@ export class AlRoute {
             return false;
         }
 
-        this.baseHREF = AlLocatorService.resolveNodeURI( node );
+        this.baseHREF = node.uri;
         let path = action.path ? action.path : '';
         let missing = false;
         //  Substitute route parameters into the path pattern; fail on missing required parameters,

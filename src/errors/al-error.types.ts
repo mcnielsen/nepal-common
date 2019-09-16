@@ -25,8 +25,8 @@ export class AlAPIServerError extends Error
  */
 export class AlResponseValidationError extends Error
 {
-    constructor( message:string, errors:any[] = [] ) {
-        console.error( message, errors );
+    constructor( message:string, public errors:any[] = [] ) {
         super( message );
+        console.error( message, errors );
     }
 }
