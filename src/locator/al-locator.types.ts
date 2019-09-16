@@ -182,11 +182,11 @@ type UriMappingItem =
 
 export class AlLocatorMatrix
 {
-    public static totalTime;
+    public static totalTime = 0;
     public static totalSeeks = 0;
 
-    protected actingUri:string|null = null;
-    protected actor:AlLocationDescriptor|null = null;
+    protected actingUri:string|undefined = undefined;
+    protected actor:AlLocationDescriptor|undefined = undefined;
 
     protected uriMap:{[pattern:string]:UriMappingItem[]} = {};
     protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
@@ -223,7 +223,7 @@ export class AlLocatorMatrix
             url = loc.uri;
             //  For historical reasons, some nodes (like auth0) are represented without protocols (e.g., alertlogic-integration.auth0.com instead of https://alertlogic-integration.auth0.com).
             //  For the purposes of resolving functional links, detect these protocolless domains and add the default https:// protocol to them.
-            if ( url.indexOf("http") !== 0 ) {
+            if ( ! url.startsWith("http") ) {
                 url = `https://${url}`;
             }
         } else {
@@ -243,44 +243,46 @@ export class AlLocatorMatrix
     /**
      *  Resolves a literal URI to a service node.
      */
-    public getNodeByURI( targetURI:string ):AlLocationDescriptor|null {
+    public getNodeByURI( targetURI:string ):AlLocationDescriptor|undefined {
         let start = this.timestamp(0);
-        let hit:UriMappingItem = null;
+        let result:AlLocationDescriptor|undefined = undefined;
         Object.entries( this.uriMap ).find( ( [ keyword, candidates ] ) => {
-            if ( targetURI.indexOf( keyword ) !== -1 ) {
-                hit = candidates.find( candidate => {
-                    if ( targetURI.indexOf( candidate.matchExpression ) === 0 ) {
+            if ( targetURI.includes( keyword ) ) {
+                let hit = candidates.find( candidate => {
+                    if ( targetURI.startsWith( candidate.matchExpression ) ) {
                         return true;        //  exact match
                     }
                     if ( ! candidate.matcher ) {
                         candidate.matcher = new RegExp( this.escapeLocationPattern( candidate.matchExpression ) );
                     }
                     if ( candidate.matcher.test( targetURI ) ) {
-                        return true;
+                        return true;        //  matched by regular expression
                     }
                     return false;
                 } );
                 if ( hit ) {
+                    result = hit.location;
                     const baseUrl = this.getBaseUrl( targetURI );
-                    if ( baseUrl !== hit.location.uri ) {
-                        hit.location.uri = baseUrl;
-                        console.log(`Notice: using [${baseUrl}] as a base URI for location type '${hit.location.locTypeId}'`);
+                    if ( baseUrl !== result.uri ) {
+                        result.uri = baseUrl;
                     }
                     return true;
                 }
             }
+            return false;
         } );
 
         let duration = this.timestamp( 1000 ) - start;
-        AlLocatorMatrix.totalTime = AlLocatorMatrix.totalTime ? AlLocatorMatrix.totalTime + duration : duration;
+        AlLocatorMatrix.totalTime += duration;
         AlLocatorMatrix.totalSeeks++;
-        return hit ? hit.location : null;
+
+        return result;
     }
 
     /**
      *  Gets the currently acting node.
      */
-    public getActingNode():AlLocationDescriptor|null {
+    public getActingNode():AlLocationDescriptor|undefined {
         return this.actor;
     }
 
@@ -288,59 +290,62 @@ export class AlLocatorMatrix
      *  Nested nodes (e.g., an application living inside another application) are official dead, making this method
      *  @deprecated.
      */
-    public resolveNodeURI( node:AlLocationDescriptor, context?:AlLocationContext ):string {
+    /* tslint:disable:no-unused-variable */
+    public resolveNodeURI( node:AlLocationDescriptor ):string {
         console.warn("Deprecation warning: please do not use resolveNodeURI directly; just use the location's 'uri' property." );
         return node.uri;
     }
 
     /**
-     *  Updates the locator matrix model with a set of service node descriptors.  Optionally
-     *  calculates which node is the acting node based on its URI.
+     *  Updates the locator matrix model with a set of service node descriptors.
      *
      *  @param {Array} nodes A list of service node descriptors.
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
         nodes.forEach( node => {
-            if ( node.environment && node.residency ) {
-                if ( node.insightLocationId ) {
-                    this.nodeDictionary[`${node.locTypeId}-${node.environment}-${node.residency}-${node.insightLocationId}`] = node;
+            const environments:string[] = node.hasOwnProperty( "environment" ) ? node.environment.split("|") : [ 'default' ];
+            environments.forEach( environment => {
+
+                //  These are the hash keys
+                this.nodeDictionary[`${node.locTypeId}-*-*`] = node;
+                this.nodeDictionary[`${node.locTypeId}-${environment}-*`] = node;
+                if ( node.residency ) {
+                    this.nodeDictionary[`${node.locTypeId}-${environment}-${node.residency}`] = node;
+                    if ( node.insightLocationId ) {
+                        this.nodeDictionary[`${node.locTypeId}-${environment}-${node.residency}-${node.insightLocationId}`] = node;
+                    }
                 }
-                this.nodeDictionary[`${node.locTypeId}-${node.environment}-${node.residency}`] = node;
-            }
-            if ( node.environment ) {
-                this.nodeDictionary[`${node.locTypeId}-${node.environment}-*`] = node;
-            }
-            this.nodeDictionary[`${node.locTypeId}-*-*`] = node;
 
-            const keyword = node.keyword || node.uri;
-            if ( ! this.uriMap.hasOwnProperty( keyword ) ) {
-                this.uriMap[keyword] = [];
-            }
+                const keyword = node.keyword || node.uri;
+                if ( ! this.uriMap.hasOwnProperty( keyword ) ) {
+                    this.uriMap[keyword] = [];
+                }
 
-            this.uriMap[keyword].push( {
-                location: node,
-                matchExpression: node.uri
-            } );
-
-            if ( node.aliases ) {
-                node.aliases.forEach( alias => {
-                    this.uriMap[keyword].push( {
-                        location: node,
-                        matchExpression: alias
-                    } );
+                this.uriMap[keyword].push( {
+                    location: node,
+                    matchExpression: node.uri
                 } );
-            }
+
+                if ( node.aliases ) {
+                    node.aliases.forEach( alias => {
+                        this.uriMap[keyword].push( {
+                            location: node,
+                            matchExpression: alias
+                        } );
+                    } );
+                }
+            } );
         } );
 
-        Object.entries( this.uriMap ).forEach( ( [ keyword, candidates ] ) => {
+        Object.values( this.uriMap ).forEach( candidates => {
             candidates.sort( ( a, b ) => ( a.location.weight || 0 ) - ( b.location.weight || 0 ) );
         } );
     }
 
-    public setActingUri( actingUri:string|boolean ) {
-        if ( actingUri === null ) {
-            this.actingUri = null;
-            this.actor = null;
+    public setActingUri( actingUri:string|boolean|undefined ) {
+        if ( actingUri === undefined ) {
+            this.actingUri = undefined;
+            this.actor = undefined;
             return;
         }
 
@@ -365,6 +370,13 @@ export class AlLocatorMatrix
                     environment: this.actor.environment || this.context.environment,
                     residency: this.actor.residency || this.context.residency
                 } );
+            } else {
+                this.setContext( {
+                    environment:        "production",
+                    residency:          "US",
+                    insightLocationId:  undefined,
+                    accessible:         undefined
+                } );
             }
         }
     }
@@ -373,7 +385,7 @@ export class AlLocatorMatrix
         return Object.values( this.nodeDictionary ).filter( filter );
     }
 
-    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor|null {
+    public findOne( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor|undefined {
         return Object.values( this.nodeDictionary ).find( filter );
     }
 
@@ -462,7 +474,7 @@ export class AlLocatorMatrix
      */
     protected escapeLocationPattern( uri:string ):string {
         let pattern = "^" + uri.replace(/[-\/\\^$.()|[\]{}]/g, '\\$&');     //  escape all regexp characters except *, add anchor
-        pattern = pattern.replace( /\*/g, "([a-zA-Z0-9_]+)" );               //  convert * wildcard into group match with 1 or more characters
+        pattern = pattern.replace( /\*/g, "([a-zA-Z0-9_\-]+)" );            //  convert * wildcard into group match with 1 or more characters
         pattern += ".*$";                                                   //  add filler and terminus anchor
         return pattern;
     }

@@ -21,7 +21,7 @@ describe( 'AlLocatorMatrix', () => {
         } );
         it( "should escape uri patterns in the expected way", () => {
             expect( locator['escapeLocationPattern']( "https://console.overview.alertlogic.com" ) ).to.equal( "^https:\\/\\/console\\.overview\\.alertlogic\\.com.*$" );
-            expect( locator['escapeLocationPattern']( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-([a-zA-Z0-9_]+)\\.ui\\-dev\\.alertlogic\\.com.*$" );
+            expect( locator['escapeLocationPattern']( "https://dashboards.pr-*.ui-dev.alertlogic.com" ) ).to.equal( "^https:\\/\\/dashboards\\.pr\\-([a-zA-Z0-9_-]+)\\.ui\\-dev\\.alertlogic\\.com.*$" );
         } );
 
         it( "should properly resolve URI patterns to location nodes", () => {
@@ -111,77 +111,121 @@ describe( 'AlLocatorMatrix', () => {
     } );
 
     describe( 'given production-like location descriptors for the overview application', () => {
-        it("should infer the right context information and matching sibling nodes for each acting URL", () => {
-            let context = locator.getContext();
-            let matching:AlLocationDescriptor = null;
-
-            //  Default values
-            locator.setActingUri( 'https://console.overview.alertlogic.com/#/remediations-scan-status/2' );
-            expect( context.environment ).to.equal( 'production' );
-            expect( context.residency ).to.equal( 'US' );
-
+        it("should infer correct context/sibling nodes for default/unrecognized URLs", () => {
             //  Null (clears actor).  Because, evidently, Kevin likes `null` A LOT.
-            locator.setActingUri( null );
-            expect( locator['actingUri'] ).to.equal( null );
-            expect( locator['actor'] ).to.equal( null );
+            locator.setActingUri( undefined );
+            expect( locator['actingUri'] ).to.equal( undefined );
+            expect( locator['actor'] ).to.equal( undefined );
 
             //  Context inferred from default URL, which won't be recognized
             locator.setActingUri( true );
+            let actor = locator.getActingNode();
+            let context = locator.getContext();
             expect( context.environment ).to.equal( "production" );
             expect( context.residency ).to.equal( "US" );
 
-            matching = locator.getNode( AlLocation.IncidentsUI );
+            let matching = locator.getNode( AlLocation.IncidentsUI );
             expect( matching ).to.be.an( 'object' );
             expect( matching.environment ).to.equal( 'production' );
             expect( matching.residency ).to.equal( 'US' );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.cloudinsight.alertlogic.com/aims/v1/2/accounts" );
 
-            //  Context inferred from UK production URL
-            locator.setActingUri( 'https://console.overview.alertlogic.co.uk/#/remediations-scan-status/2' );
-            context = locator.getContext();
-            expect( context.environment ).to.equal( "production" );
-            expect( context.residency ).to.equal( "EMEA" );
+        } );
 
-            matching = locator.getNode( AlLocation.IncidentsUI );
-            expect( matching ).to.be.an( 'object' );
-            expect( matching.environment ).to.equal( 'production' );
-            expect( matching.residency ).to.equal( 'EMEA' );
-            expect( matching.uri ).to.equal( "https://console.incidents.alertlogic.co.uk" );
-
-            //  Context inferred from US production URL
+        it("should infer correct context/sibling nodes for production US URLs", () => {
             locator.setActingUri( 'https://console.overview.alertlogic.com/#/remediations-scan-status/2' );
-            context = locator.getContext();
+            let context = locator.getContext();
             expect( context.environment ).to.equal( "production" );
             expect( context.residency ).to.equal( "US" );
 
-            matching = locator.getNode( AlLocation.IncidentsUI );
+            let matching = locator.getNode( AlLocation.IncidentsUI );
             expect( matching ).to.be.an( 'object' );
             expect( matching.environment ).to.equal( 'production' );
             expect( matching.residency ).to.equal( 'US' );
             expect( matching.uri ).to.equal( "https://console.incidents.alertlogic.com" );
 
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.cloudinsight.alertlogic.com/aims/v1/2/accounts" );
+        } );
+
+        it("should infer correct context/sibling nodes for production UK URLs", () => {
+
+            locator.setActingUri( 'https://console.overview.alertlogic.co.uk/#/remediations-scan-status/2' );
+            let context = locator.getContext();
+            expect( context.environment ).to.equal( "production" );
+            expect( context.residency ).to.equal( "EMEA" );
+
+            let matching = locator.getNode( AlLocation.IncidentsUI );
+            expect( matching ).to.be.an( 'object' );
+            expect( matching.environment ).to.equal( 'production' );
+            expect( matching.residency ).to.equal( 'EMEA' );
+            expect( matching.uri ).to.equal( "https://console.incidents.alertlogic.co.uk" );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.cloudinsight.alertlogic.co.uk/aims/v1/2/accounts" );
+        } );
+
+        it("should infer correct context/sibling nodes for beta-navigation URLs", () => {
+            //  Context inferred from beta-navigation URL
+            locator.setActingUri( 'https://overview-beta-navigation.ui-dev.product.dev.alertlogic.com/#/remediations-scan-status/2' );
+            let context = locator.getContext();
+            expect( context.environment ).to.equal( "beta-navigation" );
+            expect( context.residency ).to.equal( "US" );
+
+            let matching = locator.getNode( AlLocation.IncidentsUI );
+            expect( matching ).to.be.an( 'object' );
+            expect( matching.environment ).to.equal( 'beta-navigation' );
+            expect( matching.residency ).to.equal( 'US' );
+            expect( matching.uri ).to.equal( "https://incidents-beta-navigation.ui-dev.product.dev.alertlogic.com" );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.product.dev.alertlogic.com/aims/v1/2/accounts" );
+        } );
+
+        it("should infer correct context/sibling nodes for integration URLs", () => {
+
             //  Context inferred from integration URL
             locator.setActingUri( 'https://console.overview.product.dev.alertlogic.com/#/remediations-scan-status/2' );
-            context = locator.getContext();
+            let context = locator.getContext();
             expect( context.environment ).to.equal( "integration" );
             expect( context.residency ).to.equal( "US" );
 
-            matching = locator.getNode( AlLocation.IncidentsUI );
+            let matching = locator.getNode( AlLocation.IncidentsUI );
             expect( matching ).to.be.an( 'object' );
             expect( matching.environment ).to.equal( 'integration' );
             expect( matching.residency ).to.equal( undefined );
             expect( matching.uri ).to.equal( "https://console.incidents.product.dev.alertlogic.com" );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.product.dev.alertlogic.com/aims/v1/2/accounts" );
 
+        } );
+
+        it("should infer correct context/sibling nodes for integration aliases", () => {
+            //  Context inferred from PR demo bucket alias
+            locator.setActingUri( 'https://overview-pr-199.ui-dev.product.dev.alertlogic.com/#/remediations-scan-status/2' );
+            let context = locator.getContext();
+            expect( context.environment ).to.equal( "integration" );
+            expect( context.residency ).to.equal( "US" );
+
+            let matching = locator.getNode( AlLocation.IncidentsUI );
+            expect( matching ).to.be.an( 'object' );
+            expect( matching.environment ).to.equal( 'integration' );
+            expect( matching.residency ).to.equal( undefined );
+            expect( matching.uri ).to.equal( "https://console.incidents.product.dev.alertlogic.com" );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.product.dev.alertlogic.com/aims/v1/2/accounts" );
+
+            //  This is a super duper important test.  Once an alias domain has been recognized as the acting URL, it should
+            //  *take over the base URI for that context*.
+            expect( locator.resolveURL( AlLocation.OverviewUI, '/#/remediations-scan-status/2' ) ).to.equal( 'https://overview-pr-199.ui-dev.product.dev.alertlogic.com/#/remediations-scan-status/2' );
+        } );
+
+        it("should infer correct context/sibling nodes for local development URLs", () => {
             //  Context inferred from local/development URL
             locator.setActingUri( 'http://localhost:4213/#/remediations-scan-status/2' );
-            context = locator.getContext();
+            let context = locator.getContext();
             expect( context.environment ).to.equal( "development" );
             expect( context.residency ).to.equal( "US" );
 
-            matching = locator.getNode( AlLocation.IncidentsUI );
+            let matching = locator.getNode( AlLocation.IncidentsUI );
             expect( matching ).to.be.an( 'object' );
             expect( matching.environment ).to.equal( 'development' );
             expect( matching.residency ).to.equal( undefined );
             expect( matching.uri ).to.equal( "http://localhost:8001" );
+            expect( locator.resolveURL( AlLocation.InsightAPI, "/aims/v1/2/accounts" ) ).to.equal( "https://api.product.dev.alertlogic.com/aims/v1/2/accounts" );
         } );
 
         it("should allow nodes to be searched", () => {
@@ -210,7 +254,7 @@ describe( 'AlLocatorMatrix', () => {
             expect( match.residency ).to.equal( "EMEA" );
 
             match = locator.getNodeByURI( "https://somewhere.over-the.rainbow.org/#/my-page" );
-            expect( match ).to.equal( null );
+            expect( match ).to.equal( undefined );
         } );
 
     } );
