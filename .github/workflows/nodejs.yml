@@ -1,0 +1,23 @@
+name: Node CI
+
+on: [pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node.js 11
+      uses: actions/setup-node@v1
+      with:
+        node-version: 11
+    - name: npm install, build, and test
+      run: |
+        npm install
+        npm run lint
+        npm test
+        npm run build
+      env:
+        CI: true
