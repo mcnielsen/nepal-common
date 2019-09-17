@@ -530,6 +530,6 @@ export class AlLocatorMatrix
     }
 
     protected timestamp( defaultValue:number ):number {
-        return window && window.hasOwnProperty("performance") ? window.performance.now() : defaultValue;
+        return typeof( window ) !== 'undefined' && window.hasOwnProperty("performance") ? window.performance.now() : defaultValue;
     }
 }
