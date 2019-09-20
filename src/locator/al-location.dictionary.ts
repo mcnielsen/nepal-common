@@ -207,6 +207,27 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     },
 
     /**
+     * Barkly Endpoints API
+     */
+    {
+        locTypeId: AlLocation.EndpointsAPI,
+        uri: 'https://api.endpoints.alertlogic.com',
+        environment: 'production',
+        residency: 'US'
+    },
+    {
+        locTypeId: AlLocation.EndpointsAPI,
+        uri: 'https://api.endpoints.alertlogic.co.uk',
+        environment: 'production',
+        residency: 'EMEA'
+    },
+    {
+        locTypeId: AlLocation.EndpointsAPI,
+        uri: 'https://api.endpoints.product.dev.alertlogic.com',
+        environment: 'integration|beta-navigation|development'
+    },
+
+    /**
     *  Integrations/API Documentation.
     */
     {
