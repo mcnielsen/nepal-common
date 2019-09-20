@@ -27,6 +27,9 @@ export interface AlRoutingHost
     /* Named routes - actions that can be reused by multiple menu items or invoked imperatively from code */
     getRouteByName?( routeName:string ):AlRouteDefinition;
 
+    /* Link decoration - allows manipulation of `href` properties for link menu items. */
+    decorateHref?( route:AlRoute ):void;
+
     /* Bookmarks - arguably the worst name for a navigation construct I've chosen in years!  But super useful, I swear. */
     setBookmark( bookmarkId:string, route:AlRoute ):void;
     getBookmark( bookmarkId:string ):AlRoute;
@@ -377,6 +380,9 @@ export class AlRoute {
             .replace( /[ \/]+$/g, '' );
 
         this.href = this.baseHREF + path;
+        if ( this.host.decorateHref ) {
+            this.host.decorateHref( this );
+        }
         return ! missing;
     }
 
