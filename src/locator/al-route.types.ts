@@ -76,7 +76,7 @@ export interface AlRouteCondition
     conditions?:AlRouteCondition[];     //  An array of child conditions to evaluate using the indicated rule
     entitlements?:string;               //  An entitlement expression to evaluate
     path_matches?:string;               //  Path matches a given regular expression
-    parameters?:string[];               //  An array of route parameters that must be set for the route to be visible/active
+    parameters?:string[];               //  An array of route parameters that must be present, or parameter equivalence tests that must be true
 }
 
 /**
@@ -323,8 +323,9 @@ export class AlRoute {
     }
 
     /**
-     * Diagnostic method for logging the current hierarchy and state of a given navigational tree.
+     * Diagnostic method for logging the current hierarchy and state of a given navigational tree.  Excluded from unit test coverage because no production code should utilize it!
      */
+    /* istanbul ignore next */
     summarize( showAll:boolean = true, depth:number = 0 ) {
         if ( showAll || this.visible ) {
             console.log( "    ".repeat( depth ) + `${this.definition.caption} (${this.visible ? 'visible' : 'hidden'}, ${this.activated ? 'activated' : 'inactive'})` + ( this.href ? ' - ' + this.href : '' ) );
@@ -439,8 +440,8 @@ export class AlRoute {
         let truthful = true;
         if ( condition.parameters ) {
             //  Evaluates true only if all of the referenced route parameters exist
-            truthful = truthful && condition.parameters.reduce<boolean>( ( present, parameterName ):boolean => {
-                    return present && this.host.routeParameters.hasOwnProperty( parameterName );
+            truthful = truthful && condition.parameters.reduce<boolean>( ( evaluation, parameterExpression ):boolean => {
+                    return evaluation && this.evaluateParameterExpression( parameterExpression );
                 }, true );
         }
         if ( condition.path_matches ) {
@@ -452,6 +453,21 @@ export class AlRoute {
             truthful = truthful && this.host.evaluate( condition );
         }
         return truthful;
+    }
+
+    /**
+     * Determine whether a route parameter test is true or not
+     */
+    evaluateParameterExpression( expression:string ) {
+        if ( expression.includes("!=") ) {
+            const [ parameterName, parameterValue ] = expression.split("!=");
+            return ! this.host.routeParameters.hasOwnProperty( parameterName ) || this.host.routeParameters[parameterName] !== parameterValue;
+        } else if ( expression.includes("=") ) {
+            const [ parameterName, parameterValue ] = expression.split("=");
+            return this.host.routeParameters.hasOwnProperty( parameterName ) && this.host.routeParameters[parameterName] === parameterValue;
+        } else {
+            return this.host.routeParameters.hasOwnProperty( expression );
+        }
     }
 
     /**
