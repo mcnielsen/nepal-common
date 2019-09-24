@@ -75,6 +75,54 @@ describe( 'AlRoute', () => {
             //  Test the default value for missing properties case too
             expect( menu.getProperty( 'kevin', false ) ).to.equal( false );
         } );
+        it("deleting route properties should fall back on properties in the definition", () => {
+            const route = new AlRoute( routingHost, {
+                caption: "Test Route",
+                properties: {
+                    property1: "original"
+                }
+            } );
+            expect(route.getProperty( "property1" ) ).to.equal("original" );
+            route.setProperty( 'property1', 'newAndImproved' );
+            expect(route.getProperty( "property1" ) ).to.equal("newAndImproved" );
+            route.deleteProperty( 'property1' );
+            expect(route.getProperty( "property1" ) ).to.equal("original" );
+        } );
+        it("should create routes using static `empty` method", () => {
+            let route = AlRoute.empty();
+            expect( route.caption ).to.be.a("string");
+            expect( route.properties ).to.be.an("object");
+            expect( route.children ).to.be.an("Array");
+            expect( route.children.length ).to.equal( 0 );
+        } );
+        it("should create routes using static `link` method", () => {
+            let route = AlRoute.link( routingHost, "cd17:overview", '/#/some/random/path' );
+            expect( route.caption ).to.be.a("string");
+            expect( route.properties ).to.be.an("object");
+            expect( route.children ).to.be.an("Array");
+            expect( route.children.length ).to.equal( 0 );
+            expect( route.href ).to.equal( "https://console.overview.alertlogic.com/#/some/random/path" );
+        } );
+        it("should delegate `dispatch` calls to the routing host", () => {
+            let route = AlRoute.link( routingHost, "cd17:overview", '/#/some/random/path' );
+            let dispatchStub = sinon.stub( routingHost, "dispatch" );
+
+            route.dispatch();
+            expect( dispatchStub.callCount ).to.equal( 1 );
+            expect( dispatchStub.args[0][0] ).to.equal( route );
+
+            dispatchStub.restore();
+        } );
+        it("should convert to HREF when `toHref` is called", () => {
+            const route = AlRoute.link( routingHost, "cd17:overview", '/#/some/random/path' );
+            const routeHref = route.toHref();
+            expect( routeHref ).to.equal( "https://console.overview.alertlogic.com/#/some/random/path" );
+        } );
+        it("should call the host's href decorator if one is provided", () => {
+            ( routingHost as any ).decorateHref = sinon.stub();
+            const route = AlRoute.link( routingHost, "cd17:overview", '/#/some/random/path' );
+            expect( ( routingHost as any ).decorateHref.callCount ).to.equal( 1 );
+        } );
     } );
 
     describe( 'route construction', () => {
@@ -144,6 +192,10 @@ describe( 'AlRoute', () => {
             expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
             expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/to/:accountId" );
             expect( menu.visible ).to.equal( false );
+        } );
+        it( 'should handle invalid locationIds properly with a warning', () => {
+            const route = AlRoute.link( routingHost, null, "/#/some/silly/path" );
+            expect( warnStub.callCount ).to.equal( 1 );
         } );
         it( 'should handle invalid route HREFs properly', () => {
             const menu = new AlRoute( routingHost, {
@@ -336,6 +388,19 @@ describe( 'AlRoute', () => {
             let nonexistant = menu.findChild( "overview/Child 2/Does Not Exist" );
             expect( nonexistant ).to.equal( null );
         } );
+
+        it( "should bookmark routes with a bookmarkId property in their definition", () => {
+            let saveStub = sinon.stub( routingHost, "setBookmark" );
+            let route = new AlRoute( routingHost, {
+                caption: "Test Route",
+                bookmarkId: "my-bookmark-id"
+            } );
+            expect( saveStub.callCount ).to.equal( 1 );
+            expect( saveStub.args[0][0] ).to.equal( "my-bookmark-id" );
+            expect( saveStub.args[0][1] ).to.equal( route );
+
+            saveStub.restore();
+        } );
     } );
 
     describe( "conditional evaluation", () => {
@@ -358,10 +423,6 @@ describe( 'AlRoute', () => {
             routingHost.currentUrl = "https://console.remediations.alertlogic.com/#/remediations-scan-status/2";
             let route = new AlRoute( routingHost, {
                 caption: "Test Route",
-                action: {
-                    type: "trigger",
-                    trigger: "something.something.something"
-                },
                 visible: {
                     path_matches: '/remediations-scan-status.*'
                 }
@@ -372,6 +433,38 @@ describe( 'AlRoute', () => {
             route.definition.visible.path_matches = "/something-else.*";
             route.refresh( true );
             expect( route.visible ).to.equal( false );
+        } );
+
+        it("should evaluate route parameter expressions as expected", () => {
+            routingHost.routeParameters["param1"] = "alpha";
+            routingHost.routeParameters["param2"] = "omega";
+
+            let route = new AlRoute( routingHost, {
+                caption: "Test Route",
+                visible: {
+                    parameters: [ "param1=alpha", "param2!=alpha" ]
+                }
+            } );
+
+            expect( route.visible ).to.equal( true );   //  because param1 equals alpha and param2 doesn't
+
+            let route2 = new AlRoute( routingHost, {
+                caption: "Test Route",
+                visible: {
+                    parameters: [ "param3" ]
+                }
+            } );
+
+            expect( route2.visible ).to.equal( false ); //  because param3 doesn't exist
+
+            let route3 = new AlRoute( routingHost, {
+                caption: "Test Route",
+                visible: {
+                    parameters: [ "param3!=anything_at_all", "param2=omega", "param1" ]
+                }
+            } );
+
+            expect( route3.visible ).to.equal( true ); //  because param3 doesn't exist
         } );
     } );
 } );
