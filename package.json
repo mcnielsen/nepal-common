@@ -1,6 +1,6 @@
 {
   "name": "@al/common",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "A collection of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
   "main": "index.js",
   "scripts": {
