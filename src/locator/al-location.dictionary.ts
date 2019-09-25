@@ -263,7 +263,25 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         locTypeId: AlLocation.Segment,
         uri: 'https://segment.io',
         data: {
-          clientID: 'NJhAMUnCOQJwg8XT4chppHkoCeXApZIt'
+            analyticsKey: 'Ud9VX1aFxXgjg8CnlOBv9k5b6qga9yII'
+        },
+        environment: 'production',
+        residency: 'US'
+    },
+    {
+        locTypeId: AlLocation.Segment,
+        uri: 'https://segment.io',
+        data: {
+            analyticsKey: 'IwB7SmcEFckM6FrHlbQYcg0I75lc93dO'
+        },
+        environment: 'production',
+        residency: 'EMEA'
+    },
+    {
+        locTypeId: AlLocation.Segment,
+        uri: 'https://segment.io',
+        data: {
+            analyticsKey: 'OXe8LjJ0C48IJASuW9Ho37f4o6XCXHIV'
         },
         environment: 'integration'
     },
@@ -271,7 +289,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         locTypeId: AlLocation.Segment,
         uri: 'https://dev.segment.io',
         data: {
-          clientID: 'b1ptaDZMJSUaFmm38ho7p4NH5uHwqheY'
+            analyticsKey: 'b1ptaDZMJSUaFmm38ho7p4NH5uHwqheY'
         },
         environment: 'development'
     },
