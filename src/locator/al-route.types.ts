@@ -167,8 +167,6 @@ export class AlRoute {
     /* Is the menu item currently activated/expanded?  This will allow child items to be seen. */
     activated:boolean = false;
 
-    // parent?:AlRoute;
-
     /* Child menu items */
     children:AlRoute[] = [];
 
@@ -183,9 +181,9 @@ export class AlRoute {
     /* Cached target URL */
     href?:string;
 
-    constructor( public host:AlRoutingHost, /* Link to the routing host, which exposes current routing context, routing parameters, and actions that influence the environment */
-                 public definition:AlRouteDefinition, /* The raw data of the route */
-                 public parent:AlRoute|null = null    /* Parent menu item (if not a top level navigational slot) */
+    constructor( public host:AlRoutingHost,                     /* Link to the routing host, which exposes current routing context, routing parameters, and actions that influence the environment */
+                 public definition:AlRouteDefinition,           /* The raw data of the route */
+                 public parent:AlRoute|undefined = undefined    /* Parent menu item (if not a top level navigational slot) */
     ) {
         this.definition =   definition;
         this.caption    =   definition.caption;
@@ -200,7 +198,7 @@ export class AlRoute {
         if ( definition.properties ) {
             this.properties = Object.assign( this.properties, definition.properties );      //  definition properties provide the "starting point" for the route's properties, but remain immutable defaults
         }
-        if ( parent === null ) {
+        if ( parent === undefined ) {
             //  This effectively performs the initial refresh/state evaluation to occur once, after the top level item has finished populating
             this.refresh( true );
         }
@@ -394,10 +392,10 @@ export class AlRoute {
         if ( !this.href ) {
             return false;
         }
-        if ( this.baseHREF && this.host.currentUrl.indexOf( this.baseHREF ) === 0 ) {
-            // remove parameters from href
+        if ( this.baseHREF && this.host.currentUrl.startsWith( this.baseHREF ) ) {
             const noParamsHref = this.href.includes('?') ? this.href.substring(0, this.href.indexOf('?')) : this.href;
-            if ( this.host.currentUrl.indexOf( noParamsHref ) === 0 ) {
+            const noParamsCurrentHref = this.host.currentUrl.includes("?") ? this.host.currentUrl.substring( 0, this.host.currentUrl.indexOf("?") ) : this.host.currentUrl;
+            if ( noParamsCurrentHref === noParamsHref ) {
                 //  If our full URL *contains* the current URL, we are activated
                 this.activated = true;
             } else if ( this.definition.matches ) {
@@ -538,6 +536,47 @@ export class AlRoute {
             return child ? child.findChild( path.slice( 1 ) ) : null;
         }
         return child || null;
+    }
+
+    /**
+     * This method will return the deepest activated, childless route within its first activated child.  If this sounds obtuse,
+     * it is -- but's it's important for determining the "cursor" menu item within a menu hierarchy.
+     */
+    getActivationCursor():AlRoute|undefined {
+        let activatedChild:AlRoute|undefined = undefined;
+        this.children.find( child => {
+            if ( child.activated ) {
+                if ( child.children.length === 0 ) {
+                    activatedChild = child;
+                } else {
+                    activatedChild = child.getActivationCursor();
+                }
+            }
+            return activatedChild ? true : false;
+        } );
+
+        if ( activatedChild ) {
+            return activatedChild;
+        }
+
+        return this.activated ? this : undefined;
+    }
+
+    /**
+     * This method uses the method above to generate a flat array of activated menu items, from top to bottom,
+     * or undefined if no child of the given menu is activated.
+     */
+    getActivationCursorFlat():AlRoute[]|undefined {
+        let cursor = this.getActivationCursor();
+        if ( ! cursor ) {
+            return undefined;
+        }
+        let activationPath:AlRoute[] = [];
+        while( cursor ) {
+            activationPath.unshift( cursor );
+            cursor = cursor.parent;
+        }
+        return activationPath;
     }
 }
 
