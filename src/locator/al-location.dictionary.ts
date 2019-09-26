@@ -12,7 +12,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global.alertlogic.com',
-        environment: 'production'
+        environment: 'production|beta-nav-prod'
     },
     {
         locTypeId: AlLocation.GlobalAPI,
@@ -31,7 +31,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.cloudinsight.alertlogic.com',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US'
     },
     {
@@ -39,7 +39,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.cloudinsight.alertlogic.co.uk',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'EMEA'
     },
     {
@@ -60,7 +60,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://console.clouddefender.alertlogic.com',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US',
         uiCaption: 'us-west-1',
         uiEntryPoint: {
@@ -75,7 +75,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://console.alertlogic.co.uk',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'EMEA',
         uiCaption: 'uk-west-1',
         uiEntryPoint: {
@@ -90,7 +90,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://cd-integration-console.alertlogic.net',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US',
         uiCaption: 'us-east-1',
         uiEntryPoint: {
@@ -139,13 +139,13 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     {
         locTypeId: AlLocation.InsightBI,
         uri: 'https://bi.cloudinsight.alertlogic.com',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US'
     },
     {
         locTypeId: AlLocation.InsightBI,
         uri: 'https://bi.cloudinsight.alertlogic.co.uk',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'EMEA'
     },
     {
@@ -212,13 +212,13 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     {
         locTypeId: AlLocation.EndpointsAPI,
         uri: 'https://api.endpoints.alertlogic.com',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US'
     },
     {
         locTypeId: AlLocation.EndpointsAPI,
         uri: 'https://api.endpoints.alertlogic.co.uk',
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'EMEA'
     },
     {
@@ -265,7 +265,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         data: {
             analyticsKey: 'Ud9VX1aFxXgjg8CnlOBv9k5b6qga9yII'
         },
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US'
     },
     {
@@ -303,7 +303,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         data: {
           clientID: 'k06YQlnk518d27rHf4FLM1SIu3Q4blgB'
         },
-        environment: 'production',
+        environment: 'production|beta-nav-prod',
         residency: 'US'
     },
     {

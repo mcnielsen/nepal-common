@@ -75,7 +75,7 @@ export class AlLocation
         return [
             {
                 locTypeId: locTypeId,
-                environment: 'production',
+                environment: 'production|beta-nav-prod',
                 residency: 'US',
                 uri: `https://console.${appCode}.alertlogic.com`,
                 keyword: appCode
@@ -92,6 +92,13 @@ export class AlLocation
                 environment: 'beta-navigation',
                 residency: 'US',
                 uri: `https://${appCode}-beta-navigation.ui-dev.product.dev.alertlogic.com`,
+                keyword: appCode
+            },
+            {
+                locTypeId: locTypeId,
+                environment: 'beta-nav-prod',
+                residency: 'US',
+                uri: `https://${appCode}-beta-nav-prod.ui-dev.product.dev.alertlogic.com`,
                 keyword: appCode
             },
             {
@@ -302,10 +309,10 @@ export class AlLocatorMatrix
      *  @param {Array} nodes A list of service node descriptors.
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
-        nodes.forEach( node => {
-            const environments:string[] = typeof( node.environment ) !== 'undefined' ? node.environment.split("|") : [ 'default' ];
+        nodes.forEach( baseNode => {
+            const environments:string[] = typeof( baseNode.environment ) !== 'undefined' ? baseNode.environment.split("|") : [ 'default' ];
             environments.forEach( environment => {
-
+                let node:AlLocationDescriptor = Object.assign( {}, baseNode, { environment: environment } );
                 //  These are the hash keys
                 this.nodeDictionary[`${node.locTypeId}-*-*`] = node;
                 this.nodeDictionary[`${node.locTypeId}-${environment}-*`] = node;
