@@ -293,6 +293,7 @@ describe( 'AlLocatorMatrix', () => {
         } );
 
         it( "should prefix auth0 node with https", () => {
+            locator.setActingUri( "https://console.incidents.alertlogic.com" );
             let uri = locator.resolveURL( AlLocation.Auth0 );
             expect( uri ).to.equal( "https://alertlogic.auth0.com" );
         } );
