@@ -1,16 +1,17 @@
 import { expect } from 'chai';
 import { describe, before } from 'mocha';
-import { AlTriggerStream, AlTriggeredEvent } from '../src';
+import { AlTriggerStream, AlTriggeredEvent, AlTrigger } from '../src';
 
-class EventType1 extends AlTriggeredEvent
+@AlTrigger("EventType1")
+class EventType1 extends AlTriggeredEvent<boolean|string|number>
 {
     constructor( public eventProperty:string = "default" ) {
-        super( "EventType1");
+        super();
     }
 }
 
 let handlerCallCount = 0;
-const emptyHandler = ( event:AlTriggeredEvent ) => { handlerCallCount++; };
+const emptyHandler = ( event:AlTriggeredEvent<boolean|string|number> ) => { handlerCallCount++; };
 
 describe( 'AlTriggerStream', () => {
 
@@ -32,7 +33,7 @@ describe( 'AlTriggerStream', () => {
     it("should allow 'bottled' initialization", () => {
         const stream = new AlTriggerStream( false );
 
-        let subscription = stream.attach( "EventType1", emptyHandler );
+        let subscription = stream.attach( EventType1, emptyHandler );
 
         stream.trigger( new EventType1() );
 
@@ -46,13 +47,13 @@ describe( 'AlTriggerStream', () => {
     it("should allow one stream to siphon the events from another stream", () => {
         const stream = new AlTriggerStream( false );
 
-        let subscription = stream.attach( "EventType1", emptyHandler );
+        let subscription = stream.attach( EventType1, emptyHandler );
 
         stream.trigger( new EventType1() );
 
         const stream2 = new AlTriggerStream();
 
-        let subscription2 = stream2.attach( "EventType1", emptyHandler );
+        let subscription2 = stream2.attach( EventType1, emptyHandler );
 
         stream2.siphon( stream );
 
@@ -68,11 +69,11 @@ describe( 'AlTriggerStream', () => {
     it("should collate and return responses systematically", () => {
         const stream = new AlTriggerStream();
 
-        const subscription = stream.attach( "EventType1", ( event ) => {
+        const subscription = stream.attach( EventType1, ( event ) => {
             event.respond( true );
         } );
 
-        const subscription2 = stream.attach( "EventType1", ( event ) => {
+        const subscription2 = stream.attach( EventType1, ( event ) => {
             event.respond( "Kevin" );
         } );
 
@@ -106,7 +107,7 @@ describe( 'AlTriggerStream', () => {
     it("should respect pause, resume, and filter on subscriptions", () => {
         const stream = new AlTriggerStream();
 
-        const subscription = stream.attach( "EventType1", ( event ) => {
+        const subscription = stream.attach( EventType1, ( event ) => {
             event.respond( true );
             handlerCallCount++;
         } );
