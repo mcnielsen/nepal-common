@@ -10,6 +10,7 @@ export { AlGlobalizer } from './utility/al-globalizer';
 export { AlBehaviorPromise } from './promises/al-behavior-promise';
 
 export {
+    AlTrigger,
     AlTriggeredEvent,
     AlTriggeredEventCallback,
     AlTriggerSubscription,
