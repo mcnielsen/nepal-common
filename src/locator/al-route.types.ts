@@ -72,11 +72,12 @@ export const AlNullRoutingHost = {
  */
 export interface AlRouteCondition
 {
-    rule?:string;                       //  must be "any", "all", or "none"
+    rule?:"any"|"all"|"none";           //  must be "any", "all", or "none"
     conditions?:AlRouteCondition[];     //  An array of child conditions to evaluate using the indicated rule
     entitlements?:string;               //  An entitlement expression to evaluate
     path_matches?:string;               //  Path matches a given regular expression
     parameters?:string[];               //  An array of route parameters that must be present, or parameter equivalence tests that must be true
+    environments?:string[];             //  An array of environments to match against (e.g., "integration", "development", "production", etc.
 }
 
 /**
@@ -141,6 +142,9 @@ export interface AlRouteDefinition {
 
     /* Behavior inflection: if this item is enabled, enable the parent item and project into its href.  This is useful for top level menu items that should direct to a child route. */
     bubble?:boolean;
+
+    /* Optional sub-route definitions.  If present, the first item whose `visible` conditions are met will have its `action` promoted into the main route definition. */
+    options?: { visible?:AlRouteCondition|boolean, action:AlRouteAction|string }[];
 }
 
 /**
@@ -151,9 +155,6 @@ export class AlRoute {
 
     /* The route's caption, echoed from its definition but possibly translated */
     caption:string;
-
-
-
 
     /* Is the menu item visible? */
     visible:boolean = true;
@@ -208,7 +209,7 @@ export class AlRoute {
      * Generates an empty route attached to a null routing host
      */
     public static empty() {
-        return new AlRoute( AlNullRoutingHost, { caption: "Nothing", properties: {} } );
+        return new AlRoute( AlNullRoutingHost, { caption: "Empty", properties: {} } );
     }
 
     public static link( host:AlRoutingHost, locationId:string, path:string, caption:string = "Link" ) {
@@ -261,7 +262,11 @@ export class AlRoute {
         }
 
         /* Evaluate visibility */
-        this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible || false ) : true;
+        if ( typeof( this.definition.options ) !== 'undefined' ) {
+            this.visible = this.evaluateRouteOptions();
+        } else {
+            this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible || false ) : true;
+        }
 
         /* Evaluate children recursively, and deduce activation state from them. */
         let childActivated = this.children.reduce(  ( activated, child ) => {
@@ -293,6 +298,26 @@ export class AlRoute {
         }
 
         return this.activated;
+    }
+
+    evaluateRouteOptions():boolean {
+        if ( typeof( this.definition.options ) === 'undefined' ) {
+            return false;
+        }
+        const activatedOption = this.definition.options.find( option => {
+            if ( typeof( option.visible ) === 'undefined' ) {
+                return true;
+            }
+            if ( typeof( option.visible ) === 'boolean' ) {
+                return option.visible;
+            }
+            return this.evaluateCondition( option.visible || false );
+        } );
+        if ( ! activatedOption ) {
+            return false;
+        }
+        this.definition.action = activatedOption.action;
+        return true;
     }
 
     /**
@@ -413,44 +438,46 @@ export class AlRoute {
     }
 
     /**
-     * Evaluates a single conditional against this route
+     *  Evaluates an AlRouteCondition recursively.
+     *
+     *  Internally, the methods compiles boolean results of
+     *      a) nested conditions
+     *      b) route parameters or parameter expressions
+     *      c) path matches
+     *      d) entitlements or other externally calculated conditions
+     *  And then uses a simple reducer to roll up all results based on the condition rule, which defaults to 'all'.
      */
     evaluateCondition( condition:AlRouteCondition|boolean ):boolean {
         if ( typeof( condition ) === 'boolean' ) {
             return condition;
         }
+
+        let evaluations:boolean[] = [];
         if ( condition.rule && condition.conditions ) {
-            //  This condition is a group of other conditions -- evaluate it internally
-            let total = 0;
-            let passed = 0;
-            condition.conditions.forEach( child => {
-                total++;
-                passed += this.evaluateCondition( child ) ? 1 : 0;
-            } );
-            if ( condition.rule === "any" ) {
-                return (passed > 0);
-            } else if ( condition.rule === "all" ) {
-                return (passed === total);
-            }
-            return (passed === 0);
+            evaluations = evaluations.concat( condition.conditions.map( condition => this.evaluateCondition( condition ) ) );
         }
 
-        let truthful = true;
         if ( condition.parameters ) {
-            //  Evaluates true only if all of the referenced route parameters exist
-            truthful = truthful && condition.parameters.reduce<boolean>( ( evaluation, parameterExpression ):boolean => {
-                    return evaluation && this.evaluateParameterExpression( parameterExpression );
-                }, true );
+            evaluations = evaluations.concat( condition.parameters.map( parameterExpression => this.evaluateParameterExpression( parameterExpression ) ) );
         }
         if ( condition.path_matches ) {
             //  Evaluates true only if the current path matches a given regular expression
-            truthful = truthful && this.evaluatePathMatch( condition.path_matches );
+            evaluations.push( this.evaluatePathMatch( condition.path_matches ) );
         }
         if ( condition.entitlements ) {
             //  This condition refers to entitlement or other externally managed data -- ask the host to evaluate it.
-            truthful = truthful && this.host.evaluate( condition );
+            evaluations.push( this.host.evaluate( condition ) );
         }
-        return truthful;
+        if ( condition.environments ) {
+            evaluations.push( condition.environments.includes( AlLocatorService.getContext().environment || "undefined" ) );
+        }
+        if ( condition.rule === 'none' ) {
+            return ! evaluations.some( value => value );        //  no items are true
+        } else if ( condition.rule === 'any' ) {
+            return evaluations.some( value => value );          //  any items are true
+        } else /* all conditions */ {
+            return evaluations.every( value => value );         //  all items are true
+        }
     }
 
     /**
