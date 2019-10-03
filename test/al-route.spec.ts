@@ -1,17 +1,11 @@
 import { expect } from 'chai';
 import { describe, before } from 'mocha';
-import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorMatrix } from '../src/locator';
+import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorService } from '../src/locator';
 import { AlRoutingHost, AlRouteCondition, AlRouteAction, AlRouteDefinition, AlRoute } from '../src/locator';
 import * as sinon from 'sinon';
 
 describe( 'AlRoute', () => {
 
-    const actingURL = "https://console.remediations.alertlogic.com/#/remediations-scan-status/2";
-    const nodes:AlLocationDescriptor[] = [
-        ...AlLocation.uiNode( AlLocation.OverviewUI, 'overview', 4213 ),
-        ...AlLocation.uiNode( AlLocation.IncidentsUI, 'incidents', 8001 )
-    ];
-    let locator:AlLocatorMatrix= new AlLocatorMatrix( nodes, actingURL );
     const fakeEntitlements = {
         'a': true,
         'b': false,
@@ -19,8 +13,7 @@ describe( 'AlRoute', () => {
         'd': false
     };
     let routingHost = {
-        currentUrl: actingURL,
-        locator: locator,
+        currentUrl: "https://console.overview.alertlogic.com/#/remediations-scan-status/2",
         dispatch: ( route:AlRoute ) => {
             return true;
         },
@@ -466,5 +459,68 @@ describe( 'AlRoute', () => {
 
             expect( route3.visible ).to.equal( true ); //  because param3 doesn't exist
         } );
+
+        it("should evaluate environment conditionals as expected", () => {
+            AlLocatorService.setActingUri( "https://console.account.alertlogic.com" );
+            let route = new AlRoute( routingHost, {
+                caption: "Something",
+                visible: {
+                    environments: [ 'development', 'integration' ]
+                }
+            } );
+            expect( route.visible ).to.equal( false );
+
+            AlLocatorService.setActingUri( "https://console.account.product.dev.alertlogic.com" );
+            route.refresh();
+            expect( route.visible ).to.equal( true );
+        } );
+
+        it("should evaluate compound conditionals using 'all' as expected", () => {
+            routingHost.routeParameters["accountId"] = "2";
+            routingHost.routeParameters["deploymentId"] = "funicular";
+            fakeEntitlements["super_secret_feature"] = true;
+            routingHost.currentUrl = "https://console.overview.alertlogic.com/#/special/feature/path?filter=healthy";
+
+            let route = new AlRoute( routingHost, {
+                caption: "Something",
+                visible: {
+                    rule: 'all',
+                    parameters: [ "accountId", "deploymentId" ],
+                    path_matches: '/#/special/feature/path.*',
+                    entitlements: 'super_secret_feature'
+                }
+            } );
+
+            expect( route.visible ).to.equal( true );
+
+            fakeEntitlements["super_secret_feature"] = false;   //  any condition resulting in false should cause the whole thing to evaluate to false
+
+            route.refresh();
+
+            expect( route.visible ).to.equal( false );
+        } );
+
+        it("should evaluate compound conditions using 'none' as expected", () => {
+            routingHost.routeParameters["accountId"] = "2";
+            let route = new AlRoute( routingHost, {
+                caption: "Something",
+                visible: {
+                    rule: 'none',
+                    parameters: [ "accountId", "jabberwocky" ],     //  <-- accountId is defined, so the routes visibility should initially be `false`
+                    path_matches: '/#/some/path/i/am/not/on',
+                    entitlements: 'some_undefined_entitlement'
+                }
+            } );
+
+            expect( route.visible ).to.equal( false );
+
+            delete routingHost.routeParameters["accountId"];
+
+            route.refresh();
+
+            expect( route.visible ).to.equal( true );
+
+        } );
+
     } );
 } );
