@@ -9,7 +9,7 @@ module.exports = {
   },
   externals: [ nodeExternals() ],
   output: {
-    path: path.resolve(__dirname, './'),
+    path: path.resolve(__dirname, './dist/umd'),
     filename: '[name].js',
     library: '@al/common',
     libraryTarget: 'umd', // supports commonjs, amd and web browsers

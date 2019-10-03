@@ -2,7 +2,7 @@
   "name": "@al/common",
   "version": "2.0.0",
   "description": "A collection of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
-  "main": "index.js",
+  "main": "./dist/umd/index.js",
   "scripts": {
     "test": "karma start",
     "test-watch": "karma start --no-single-run --auto-watch",
@@ -51,9 +51,6 @@
     "webpack-node-externals": "^1.7.2"
   },
   "files": [
-    "dist/**/*",
-    "locator.js",
-    "schema-validator.js",
-    "index.js"
+    "dist"
   ]
 }
