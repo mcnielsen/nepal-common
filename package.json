@@ -1,6 +1,6 @@
 {
   "name": "@al/common",
-  "version": "2.0.0",
+  "version": "1.1.0",
   "description": "A collection of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
   "main": "./dist/umd/index.js",
   "scripts": {
