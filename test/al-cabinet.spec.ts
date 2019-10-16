@@ -9,20 +9,20 @@ describe( 'AlCabinet', () => {
 
     describe('static methods', () => {
         it('should instantiate an AlCabinet of the correct type', () => {
-            const p = AlCabinet.persistent( "persistent.cabinet" );
+            const p = AlCabinet.persistent( "cabinet" );
             expect( p.type ).to.equal( AlCabinet.PERSISTENT );
             expect( p.data ).to.eql( {} );
-            expect( p.name ).to.equal( "persistent.cabinet" );
+            expect( p.name ).to.equal( "cabinet_persistent" );
 
-            const e = AlCabinet.ephemeral( "ephemeral.cabinet" );
+            const e = AlCabinet.ephemeral( "cabinet" );
             expect( e.type ).to.equal( AlCabinet.EPHEMERAL );
             expect( e.data ).to.eql( {} );
-            expect( e.name ).to.equal( "ephemeral.cabinet" );
+            expect( e.name ).to.equal( "cabinet_ephemeral" );
 
-            const l = AlCabinet.local( "local.cabinet" );
+            const l = AlCabinet.local( "cabinet" );
             expect( l.type ).to.equal( AlCabinet.LOCAL );
             expect( l.data ).to.eql( {} );
-            expect( l.name ).to.equal( "local.cabinet" );
+            expect( l.name ).to.equal( "cabinet" );
         } );
 
         it( 'should always return a reference to the same cabinet for a given name', () => {
@@ -88,8 +88,8 @@ describe( 'AlCabinet', () => {
             scabinet.synchronize();
             lcabinet.synchronize();
 
-            expect( localStorage.getItem("testDestroyLS") ).to.be.a('string' );
-            expect( sessionStorage.getItem("testDestroySS") ).to.be.a('string' );
+            expect( localStorage.getItem("testDestroyLS_persistent") ).to.be.a('string' );
+            expect( sessionStorage.getItem("testDestroySS_ephemeral") ).to.be.a('string' );
 
             scabinet.destroy();
             lcabinet.destroy();

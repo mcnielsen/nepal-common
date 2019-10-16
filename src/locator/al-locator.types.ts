@@ -36,6 +36,7 @@ export class AlLocation
     public static GlobalAPI         = "global:api";
     public static InsightAPI        = "insight:api";
     public static EndpointsAPI      = "endpoints:api";
+    public static GestaltAPI        = "gestalt:api";
 
     /**
      * Modern UI Nodes
@@ -310,7 +311,7 @@ export class AlLocatorMatrix
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
         nodes.forEach( baseNode => {
-            const environments:string[] = typeof( baseNode.environment ) !== 'undefined' ? baseNode.environment.split("|") : [ 'default' ];
+            const environments:string[] = typeof( baseNode.environment ) !== 'undefined' ? baseNode.environment.split("|") : [ 'production' ];
             environments.forEach( environment => {
                 let node:AlLocationDescriptor = Object.assign( {}, baseNode, { environment: environment } );
                 //  These are the hash keys
@@ -349,7 +350,31 @@ export class AlLocatorMatrix
         } );
     }
 
-    public setActingUri( actingUri:string|boolean|undefined ) {
+    public remapLocationToURI( locTypeId:string, uri:string, environment?:string, residency?:string ) {
+        this.nodes = {};    //  flush lookup cache
+        const remap = ( node:AlLocationDescriptor ) => {
+            node.uri = uri;
+            node.environment = environment || node.environment;
+            node.residency = residency || node.residency;
+        };
+        for ( let hashKey in this.nodeDictionary ) {
+            if ( this.nodeDictionary.hasOwnProperty( hashKey ) ) {
+                if ( this.nodeDictionary[hashKey].locTypeId === locTypeId ) {
+                    remap( this.nodeDictionary[hashKey] );
+                }
+            }
+        }
+        Object.values( this.uriMap ).forEach( candidates => {
+            candidates.forEach( match => {
+                if ( match.location.locTypeId === locTypeId ) {
+                    remap( match.location );
+                }
+            } );
+        } );
+        this.setActingUrl( true );
+    }
+
+    public setActingUrl( actingUri:string|boolean|undefined ) {
         if ( actingUri === undefined ) {
             this.actingUri = undefined;
             this.actor = undefined;
@@ -386,6 +411,10 @@ export class AlLocatorMatrix
                 } );
             }
         }
+    }
+
+    public setActingUri( actingUrl:string|boolean|undefined ) {
+        return this.setActingUrl( actingUrl );
     }
 
     public search( filter:{(node:AlLocationDescriptor):boolean} ):AlLocationDescriptor[] {
