@@ -203,6 +203,7 @@ export class AlCabinet
      *  Destroys the current cabinet, discarding any contents it may have.
      */
     public destroy() {
+        this.data = {};
         try {
             if ( this.type === AlCabinet.PERSISTENT ) {
                 localStorage.removeItem( this.name );
