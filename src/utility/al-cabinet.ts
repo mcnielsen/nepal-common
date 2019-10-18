@@ -38,21 +38,23 @@ export class AlCabinet
      *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
      */
 
-    public static persistent( name:string ):AlCabinet {
+    public static persistent( rawName:string ):AlCabinet {
+        const name = `${rawName}_persistent`;
         if ( AlCabinet.openCabinets.hasOwnProperty( name ) ) {
             return AlCabinet.openCabinets[name];
         }
         let cabinet = new AlCabinet( name, {}, AlCabinet.PERSISTENT );
         try {
-            if ( localStorage ) {
+            if ( typeof( localStorage ) !== 'undefined' ) {
                 let content = localStorage.getItem( name );
                 if ( content ) {
                     cabinet.data = JSON.parse( content );
                 }
+            } else {
+                return AlCabinet.local( rawName );
             }
         } catch( e ) {
-            //  really?  A browser that doesn't support localStorage?  Bollocks.
-            console.warn("Unexpected error: could not access localStorage OR failed to parse JSON content found there.", e.toString() );
+            return AlCabinet.local( rawName );
         }
         AlCabinet.openCabinets[name] = cabinet;
         return cabinet;
@@ -66,21 +68,23 @@ export class AlCabinet
      *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
      */
 
-    public static ephemeral( name:string ):AlCabinet {
+    public static ephemeral( rawName:string ):AlCabinet {
+        const name = `${rawName}_ephemeral`;
         if ( AlCabinet.openCabinets.hasOwnProperty( name ) ) {
             return AlCabinet.openCabinets[name];
         }
         let cabinet = new AlCabinet( name, {}, AlCabinet.EPHEMERAL );
         try {
-            if ( sessionStorage ) {
+            if ( typeof( sessionStorage ) !== 'undefined' ) {
                 let content = sessionStorage.getItem( name );
                 if ( content ) {
                     cabinet.data = JSON.parse( content );
                 }
+            } else {
+                return AlCabinet.local( rawName );
             }
         } catch( e ) {
-            //  Just, bollocks!
-            console.warn("Unexpected error: could not access localStorage OR failed to parse JSON content found there.", e.toString() );
+            return AlCabinet.local( rawName );
         }
         AlCabinet.openCabinets[name] = cabinet;
         return cabinet;
