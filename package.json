@@ -27,9 +27,7 @@
   },
   "types": "./dist/typings/index.d.ts",
   "license": "MIT",
-  "dependencies": {
-    "ajv": "^6.10.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/karma": "^3.0.3",
