@@ -1,6 +1,9 @@
 export {
     AlAPIServerError,
-    AlResponseValidationError
+    AlResponseValidationError,
+    AlBadRequestError,
+    AlUnauthenticatedRequestError,
+    AlUnauthorizedRequestError
 } from './errors/al-error.types';
 
 export { AlStopwatch } from './utility/al-stopwatch';

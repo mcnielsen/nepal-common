@@ -197,7 +197,7 @@ export class AlLocatorMatrix
     protected actor:AlLocationDescriptor|undefined = undefined;
 
     protected uriMap:{[pattern:string]:UriMappingItem[]} = {};
-    protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
+    protected nodeCache:{[locTypeId:string]:AlLocationDescriptor} = {};
     protected nodeDictionary:{[hashKey:string]:AlLocationDescriptor} = {};
 
     protected context:AlLocationContext = {
@@ -218,6 +218,26 @@ export class AlLocatorMatrix
         if ( typeof( actingUri ) === 'boolean' || actingUri ) {
             this.setActingUri( actingUri );
         }
+    }
+
+    /**
+     * Resets locator state to its "factory presets"
+     */
+    public reset() {
+        this.nodeCache = {};
+        this.context = {
+            environment:        "production",
+            residency:          "US",
+            insightLocationId:  undefined,
+            accessible:         undefined
+        };
+    }
+
+    /**
+     * Retrieves the ID of the environment associated with the current acting URL.
+     */
+    public getCurrentEnvironment():string {
+        return this.context.environment || "production";
     }
 
     /**
@@ -351,7 +371,7 @@ export class AlLocatorMatrix
     }
 
     public remapLocationToURI( locTypeId:string, uri:string, environment?:string, residency?:string ) {
-        this.nodes = {};    //  flush lookup cache
+        this.nodeCache = {};    //  flush lookup cache
         const remap = ( node:AlLocationDescriptor ) => {
             node.uri = uri;
             node.environment = environment || node.environment;
@@ -430,7 +450,7 @@ export class AlLocatorMatrix
      *  This acts as a merge against existing context, so the caller can provide only fragmentary information without borking things.
      */
     public setContext( context?:AlLocationContext ) {
-        this.nodes = {};    //  flush lookup cache
+        this.nodeCache = {};    //  flush lookup cache
         this.context.insightLocationId = context && context.insightLocationId ? context.insightLocationId : this.context.insightLocationId;
         this.context.accessible = context && context.accessible && context.accessible.length ? context.accessible : this.context.accessible;
         /* istanbul ignore next */
@@ -461,8 +481,8 @@ export class AlLocatorMatrix
      *  @returns {AlLocationDescriptor} A node descriptor (or null, if no node matches).
      */
     public getNode( locTypeId:string, context?:AlLocationContext ):AlLocationDescriptor|null {
-        if ( this.nodes.hasOwnProperty( locTypeId ) && !context ) {
-            return this.nodes[locTypeId];
+        if ( this.nodeCache.hasOwnProperty( locTypeId ) && !context ) {
+            return this.nodeCache[locTypeId];
         }
         let environment = context && context.environment ? context.environment : this.context.environment;
         let residency = context && context.residency ? context.residency : this.context.residency;
@@ -497,7 +517,7 @@ export class AlLocatorMatrix
         }
         if ( node && ! context ) {
             //  Save it in a dictionary for faster lookup next time
-            this.nodes[locTypeId] = node;
+            this.nodeCache[locTypeId] = node;
         }
 
         return node;
