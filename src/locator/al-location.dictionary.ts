@@ -56,7 +56,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
      */
     {
         locTypeId: AlLocation.GestaltAPI,
-        uri: 'https://k1t1douoah.execute-api.us-east-1.amazonaws.com/dev',
+        uri: 'https://gestalt-api.product.dev.alertlogic.com',
         environment: 'production|integration|beta-navigation|beta-nav-prod|development'
     },
 
