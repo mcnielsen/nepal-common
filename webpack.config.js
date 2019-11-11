@@ -1,5 +1,6 @@
 const path = require('path');
 const nodeExternals = require("webpack-node-externals" );
+const copyWebpackPlugin = require("copy-webpack-plugin" );
 
 module.exports = {
   mode: 'production',
@@ -15,5 +16,9 @@ module.exports = {
     libraryTarget: 'umd', // supports commonjs, amd and web browsers
     globalObject: 'this'
   },
-  plugins: []
+  plugins: [
+    new copyWebpackPlugin( [
+      { from: './config', to: '../config', toType: 'dir' }
+    ] )
+  ]
 };

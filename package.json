@@ -1,6 +1,6 @@
 {
   "name": "@al/common",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "A collection of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
   "main": "./dist/umd/index.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "build-dev": "npm run clean &&  tsc && webpack --mode=development",
     "build": "webpack",
     "prebuild": "npm run clean && npm run lint && tsc",
-    "lint": "tslint -p tsconfig.json",
+    "lint": "tslint -p tsconfig.json -c config/tslint.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
@@ -34,6 +34,7 @@
     "@types/mocha": "^5.2.6",
     "@types/node": "^12.7.4",
     "chai": "^4.2.0",
+    "copy-webpack-plugin": "^5.0.5",
     "karma": "^4.1.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-cli": "^2.0.0",
