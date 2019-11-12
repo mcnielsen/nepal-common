@@ -1,16 +1,18 @@
 /**
+ *  Author: Big Red <knielsen@alertlogic.com>
+ *  Copyright 2019 Alert Logic, Inc.
+ */
+
+/**
+ * @public
+ *
  *  AlBehaviorPromise is a simple extension of Promise that replicates the functionality provided by RxJS's BehaviorSubject.
  *  Promises already provide multicasting functionality, but it can be deucedly inconvenient to provide an inline
  *  executor, and rather obtuse to change the resolved value.
  *
  *  This class exposes the basic surface area of a Promise -- it is `then`able -- but allows the resolved value to change
  *  if necessary.
- *
- *  @author Big Red <knielsen@alertlogic.com>
- *
- *  @copyright 2019 Alert Logic, Inc.
  */
-
 export class AlBehaviorPromise<ResultType>
 {
     protected promise:Promise<ResultType>;

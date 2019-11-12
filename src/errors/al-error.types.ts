@@ -1,7 +1,15 @@
 /**
  * A collection of classed error types.
+ *
+ * Author: Kevin Nielsen <knielsen@alertlogic.com>
+ * Copyright 2019 Alert Logic, Inc.
  */
 
+/**
+ * @public
+ *
+ * A base error class used only to provide consistent prototype chaining.
+ */
 export class AlBaseError extends Error
 {
     /* tslint:disable:variable-name */
@@ -16,6 +24,8 @@ export class AlBaseError extends Error
 }
 
 /**
+ * @public
+ *
  * This error should be used when an HTTP 5xx response (or other general error) is received
  * from an internal API.
  */
@@ -30,11 +40,16 @@ export class AlAPIServerError extends AlBaseError
 }
 
 /**
+ * @public
+ *
  * The AlResponseValidationError is intended to alert of unexpected responses from an internal API.
  * These responses need to be identified separately from other errors so that the relevant
  * system health checks or communication with an appropriate backend team can be organized in response.
  * Please note that this should NOT be used to handler general server-side failures; please see AlAPIServerError
  * for that error condition.
+ *
+ * @param message - Descriptive error text
+ * @param errors - Unstructured information about specific response validation issues
  */
 export class AlResponseValidationError extends AlBaseError
 {
@@ -44,12 +59,14 @@ export class AlResponseValidationError extends AlBaseError
 }
 
 /**
+ * @public
+ *
  * Used to indicate an invalid request to a service or API.
  *
- * @param message The description of the error
- * @param inputType Which type of input was malformed (e.g., query parameter, header, data)
- * @param inputProperty Which data element was malformed (e.g., "filter", "X-AIMS-Auth-Token", ".data.accounts.id")
- * @param description Additional descriptive content.
+ * @param message - The description of the error
+ * @param inputType - Which type of input was malformed (e.g., query parameter, header, data)
+ * @param inputProperty - Which data element was malformed (e.g., "filter", "X-AIMS-Auth-Token", ".data.accounts.id")
+ * @param description - Additional descriptive content.
  */
 export class AlBadRequestError extends AlBaseError
 {
@@ -63,10 +80,12 @@ export class AlBadRequestError extends AlBaseError
 }
 
 /**
+ * @public
+ *
  * Used to indicate that the current actor is not authenticated.
  *
- * @param message The description of the error
- * @param authority Which authentication authority made the authentication state claim.  Typically, this will be AIMS.
+ * @param message - The description of the error
+ * @param authority - Which authentication authority made the authentication state claim.  Typically, this will be AIMS.
  */
 export class AlUnauthenticatedRequestError extends AlBaseError
 {
@@ -78,10 +97,12 @@ export class AlUnauthenticatedRequestError extends AlBaseError
 }
 
 /**
+ * @public
+ *
  * Used to indicate that the current actor is not authorized to perform a given action.
  *
- * @param message A general description of the error or error context.
- * @param resource The resource that the actor is not authorized to access.
+ * @param message - A general description of the error or error context.
+ * @param resource - The resource that the actor is not authorized to access, e.g., "endpoints" or "deployments"
  */
 export class AlUnauthorizedRequestError extends AlBaseError
 {

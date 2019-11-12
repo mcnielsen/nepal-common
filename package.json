@@ -9,6 +9,7 @@
     "build-dev": "npm run clean &&  tsc && webpack --mode=development",
     "build": "webpack",
     "prebuild": "npm run clean && npm run lint && tsc",
+    "compile-documentation": "api-extractor run && api-documenter markdown --input-folder 'temp' --output-folder 'docs'",
     "lint": "tslint -p tsconfig.json -c config/tslint.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"

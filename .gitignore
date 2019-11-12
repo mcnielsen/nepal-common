@@ -4,3 +4,4 @@ dist
 *.js
 coverage
 .DS_Store
+temp

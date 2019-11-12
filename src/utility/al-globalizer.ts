@@ -1,19 +1,22 @@
 /**
- * AlGlobalizer is a simple tool for exposing encapsulated code selectively in global scope,
- * and for ensuring that singleton instances are, in fact, singletons.
- *
- * @author Kevin Nielsen <knielsen@alertlogic.com>
- * @copyright 2019 Alert Logic, Inc.
+ * Author: Kevin Nielsen <knielsen@alertlogic.com>
+ * Copyright 2019 Alert Logic, Inc.
  */
 
+/**
+ * @public
+ *
+ * AlGlobalizer is a simple tool for exposing encapsulated code selectively in global scope,
+ * and for ensuring that singleton instances are, in fact, singletons.
+ */
 export class AlGlobalizer
 {
     /**
      *  Exposes arbitrary data on a nested global property of `window`, using object merging to allow complex
      *  object composition or updates.
      *
-     *  @param {string} name A period-delimited object path, e.g., `o3.state` or `al.navigation`.
-     *  @param {string} data An object to be exposed at the given location.
+     *  @param name - A period-delimited object path, e.g., `o3.state` or `al.navigation`.
+     *  @param data - An object to be exposed at the given location.
      */
     public static expose( name:string, data:{[key:string]:any} = {} ) {
         let pathParts = name.split(".");
@@ -30,11 +33,11 @@ export class AlGlobalizer
     }
 
     /**
-     * Instantiates an instance of a global singleton.  This is used primarily to avoid collisions
+     * Instantiates an instance of a global singleton.  This is used primarily to avoid collisions.
      *
-     * @param {string} name The symbolic name of the singleton.
-     * @param {function} factory If the singleton hasn't already been instantiated, this method will be called to generate it.
-     * @param {mixed} collisionHandling If the singleton has already been instantiated, indicates how the collision should be handled.
+     * @param name - The symbolic name of the singleton.
+     * @param factory - If the singleton hasn't already been instantiated, this method will be called to generate it.
+     * @param collisionHandling - If the singleton has already been instantiated, indicates how the collision should be handled.
      *                  False will ignore the collision; true will generate a warning.  A string will cause an exception to be thrown.
      */
     public static instantiate<InstanceType>( name:string, factory:{():InstanceType}, collisionHandling:boolean|string = true ):InstanceType {

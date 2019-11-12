@@ -1,45 +1,39 @@
 /**
+ *  Author: Kevin Nielsen <knielsen@alertlogic.com>
+ *  Copyright Alert Logic Inc, 2019
+ */
+
+/**
+ * @public
+ *
  *  AlStopwatch is an attempt to encapsulate a few basic timer-related use cases into a simple interface.
  *  Most uses cases can be handled by one of the three static methods:
  *    `Stopwatch.later` - creates a Stopwatch instance that won't be executed until someone calls its `now` or `again` methods.
  *    `Stopwatch.once` - creates a Stopwatch instance that executes once after a specified delay, defaulting to 0.
  *    `Stopwatch.repeatedly` - creates a Stopwatch instance that executes repeatedly at a given interval until its `cancel` method is called.
- *
- *  @author Kevin Nielsen <knielsen@alertlogic.com>
- *
- *  @copyright Alert Logic Inc, 2019
  */
 
-/**
- *  Simple Callback descriptor
- */
-export declare type AlStopwatchCallback = { ():void };
-
-export class AlStopwatch {
-
-    // maybe this should be in the constructor
-    public callback?:AlStopwatchCallback;
+export class AlStopwatch
+{
     public timer:any = null;
     public interval:number = 0;
 
-    constructor() {
+    constructor( public callback:{():void} ) {
     }
 
     /**
      *  A static method to generate an unscheduled timer
      */
-    public static later( callback:AlStopwatchCallback ): AlStopwatch {
-        const watch = new AlStopwatch();
-        watch.callback = callback;
+    public static later( callback:{():void} ): AlStopwatch {
+        const watch = new AlStopwatch( callback );
         return watch;
     }
 
     /**
      *  A static method to generate a timer that will execute once after a given number of milliseconds.
      */
-    public static once( callback:AlStopwatchCallback, delay:number = 0 ): AlStopwatch {
-        let watch = new AlStopwatch();
-        watch.callback = callback;
+    public static once( callback:{():void}, delay:number = 0 ): AlStopwatch {
+        let watch = new AlStopwatch( callback );
         watch.timer = setTimeout( watch.tick, delay );
         return watch;
     }
@@ -49,9 +43,8 @@ export class AlStopwatch {
      *  Note that this implementation deviates from the behavior of setInterval by *defaulting*
      *  to firing the timer immediately.
      */
-    public static repeatedly( callback:AlStopwatchCallback, interval:number = 1000, beginImmediately:boolean = true ): AlStopwatch {
-        let watch = new AlStopwatch();
-        watch.callback = callback;
+    public static repeatedly( callback:{():void}, interval:number = 1000, beginImmediately:boolean = true ): AlStopwatch {
+        let watch = new AlStopwatch( callback );
         watch.interval = interval;
         watch.timer = setInterval( watch.tick, interval );
         if ( beginImmediately ) {
