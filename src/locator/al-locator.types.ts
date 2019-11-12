@@ -4,12 +4,13 @@
  *  used directly, but by a core library that exposes cross-application URL resolution in a more
  *  application-friendly way.
  *
- *  @author Kevin Nielsen <knielsen@alertlogic.com>
- *
- *  @copyright 2019 Alert Logic, Inc.
+ *  Author: Kevin Nielsen <knielsen@alertlogic.com>
+ *  Copyright 2019 Alert Logic, Inc.
  */
 
 /**
+ * @public
+ *
  * AlLocationContext defines the context in which a specific location or set of locations may exist.
  *     - environment - development, integration, production?
  *     - residency - US or EMEA (or default)?
@@ -24,6 +25,8 @@ export interface AlLocationContext {
 }
 
 /**
+ * @public
+ *
  * AlLocationType is an enumeration of different location types, each corresponding to a specific application.
  * Each type is presumed to have a single unique instance inside a given environment and residency.
  */
@@ -125,6 +128,8 @@ export class AlLocation
 }
 
 /**
+ * @public
+ *
  * Describes a single instance of a location type (AlLocation).
  */
 
@@ -148,6 +153,8 @@ export interface AlLocationDescriptor
 }
 
 /**
+ * @public
+ *
  * A dictionary of insight locations (as reported by AIMS and the locations service).
  */
 export const AlInsightLocations: {[locationId:string]: ({residency: string; residencyCaption: string, alternatives?: string[]; logicalRegion: string});} =
@@ -188,19 +195,25 @@ type UriMappingItem =
     matchExpression:string
 };
 
+/**
+ * @public
+ *
+ * This class accepts a list of location descriptors, an acting URL, and an optional context specification, and provides the ability
+ * to calculate environment- and residency- specific target URLs.
+ */
 export class AlLocatorMatrix
 {
     public static totalTime = 0;
     public static totalSeeks = 0;
 
-    protected actingUri:string|undefined = undefined;
-    protected actor:AlLocationDescriptor|undefined = undefined;
+    private actingUri:string|undefined;
+    private actor:AlLocationDescriptor|undefined;
 
-    protected uriMap:{[pattern:string]:UriMappingItem[]} = {};
-    protected nodeCache:{[locTypeId:string]:AlLocationDescriptor} = {};
-    protected nodeDictionary:{[hashKey:string]:AlLocationDescriptor} = {};
+    private uriMap:{[pattern:string]:UriMappingItem[]} = {};
+    private nodeCache:{[locTypeId:string]:AlLocationDescriptor} = {};
+    private nodeDictionary:{[hashKey:string]:AlLocationDescriptor} = {};
 
-    protected context:AlLocationContext = {
+    private context:AlLocationContext = {
         environment:        "production",
         residency:          "US",
         insightLocationId:  undefined,
@@ -243,6 +256,8 @@ export class AlLocatorMatrix
     /**
      * Arguably the only important general-purpose functionality of this service.
      * Calculates a URL from a location identifier, an optional path fragment, and an optional context.
+     *
+     * @returns The resulting URL.
      */
     public resolveURL( locTypeId:string, path?:string, context?:AlLocationContext ) {
         const loc = this.getNode( locTypeId, context );
@@ -315,8 +330,9 @@ export class AlLocatorMatrix
     }
 
     /**
+     *  @deprecated
+     *
      *  Nested nodes (e.g., an application living inside another application) are official dead, making this method
-     *  @deprecated.
      */
     /* tslint:disable:no-unused-variable */
     public resolveNodeURI( node:AlLocationDescriptor ):string {
@@ -327,7 +343,7 @@ export class AlLocatorMatrix
     /**
      *  Updates the locator matrix model with a set of service node descriptors.
      *
-     *  @param {Array} nodes A list of service node descriptors.
+     *  @param nodes - A list of service node descriptors.
      */
     public setLocations( nodes:AlLocationDescriptor[] ) {
         nodes.forEach( baseNode => {
@@ -414,7 +430,7 @@ export class AlLocatorMatrix
          *  and updating the ambient context to match its environment and data residency attributes.  It is
          *  opaque for a reason :)
          */
-        if ( actingUri ) {
+        if ( actingUri !== this.actingUri ) {
             this.actingUri = actingUri;
             this.actor = this.getNodeByURI( actingUri );
             if ( this.actor ) {
@@ -475,10 +491,10 @@ export class AlLocatorMatrix
      *  to the locator matrix instance's current context; if the default is used, the result of the lookup will be stored
      *  for performance optimization.
      *
-     *  @param {string} locTypeId The ID of the service node to select.  See al-service-identity.ts for constant values.
-     *  @param {AlLocationContext} context Additional context to shape the selection logic.
+     *  @param locTypeId - The ID of the service node to select.  See al-service-identity.ts for constant values.
+     *  @param context - Additional context to shape the selection logic.
      *
-     *  @returns {AlLocationDescriptor} A node descriptor (or null, if no node matches).
+     *  @returns A node descriptor (or null, if no node matches).
      */
     public getNode( locTypeId:string, context?:AlLocationContext ):AlLocationDescriptor|null {
         if ( this.nodeCache.hasOwnProperty( locTypeId ) && !context ) {

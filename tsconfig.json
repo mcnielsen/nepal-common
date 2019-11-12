@@ -14,6 +14,7 @@
     "module": "commonjs",
     "target": "es5",
     "declaration": true,
+    "declarationMap": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "declarationDir": "./dist/typings/",

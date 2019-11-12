@@ -1,9 +1,13 @@
 /**
- *  This is a base class for all hook executions, providing some basic information about
- *  the context in which the hook is executing and a few utility methods for interpreting
- *  sets of responses.
+ *  Author: Kevin Nielsen <knielsen@alertlogic.com>
+ *  Copyright 2019 Alert Logic, Inc.
  */
 
+/**
+ *  @public
+ *
+ *  Annotation for trigger type classes.  Prevents unique event type names from being lost during minification/uglification.
+ */
 /* tslint:disable:function-name */
 export function AlTrigger( eventTypeName:string ) {
     return function( ctor:Function ) {
@@ -11,6 +15,11 @@ export function AlTrigger( eventTypeName:string ) {
     };
 }
 
+/**
+ * @public
+ *
+ * Represents a typed event.
+ */
 export class AlTriggeredEvent<ResponseType>
 {
     public eventTypeName:string;
@@ -62,8 +71,18 @@ export class AlTriggeredEvent<ResponseType>
     }
 }
 
+/**
+ * @public
+ *
+ * Callback type for triggered events.
+ */
 export declare type AlTriggeredEventCallback<ResponseType> = {(event:AlTriggeredEvent<ResponseType>):void|boolean};
 
+/**
+ * @public
+ *
+ * Represents a subscription to a stream of triggered events.
+ */
 export class AlTriggerSubscription<ResponseType>
 {
     protected active = true;
@@ -106,6 +125,11 @@ export class AlTriggerSubscription<ResponseType>
     }
 }
 
+/**
+ * @public
+ *
+ * Represents a series of triggered events.
+ */
 export class AlTriggerStream
 {
     items:{[triggeResponseType:string]:{[subscriptionId:string]:AlTriggerSubscription<any>}} = {};
@@ -178,6 +202,8 @@ export class AlTriggerStream
 }
 
 /**
+ * @public
+ *
  * This is a simple utility to manage a list of subscriptions, which may be AlTriggerSubscriptions or RxJS subscriptions.
  * It exposes a method `manage` to add new subscriptions, and a method `cancelAll` to unsubscribe from all subscriptions.
  * That is all it does.

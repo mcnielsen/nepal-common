@@ -1,14 +1,15 @@
 /**
  *  This is a collection of interfaces and types for cross-application routing.
  *
- *  @author McNielsen <knielsen@alertlogic.com>
- *
- *  @copyright 2017 Alert Logic Inc.
+ *  Author: McNielsen <knielsen@alertlogic.com>
+ *  Copyright 2017 Alert Logic Inc.
  */
 
 import { AlLocatorService } from './al-locator.service';
 
 /**
+ * @public
+ *
  * Any navigation host must provide these basic functions
  */
 export interface AlRoutingHost
@@ -42,6 +43,8 @@ export interface AlRoutingHost
 }
 
 /**
+ * @internal
+ *
  * This empty or "null" routing host is provided as a convenience for unit tests,
  * debugging, and placeholder or empty menu structures.
  */
@@ -68,6 +71,8 @@ export const AlNullRoutingHost = {
 };
 
 /**
+ *  @public
+ *
  *  Conditional expressions
  */
 export interface AlRouteCondition
@@ -81,9 +86,9 @@ export interface AlRouteCondition
 }
 
 /**
+ *  @public
  *  The action associated with a route.  These are only the most common properties.
  */
-
 export interface AlRouteAction
 {
     /**
@@ -111,6 +116,8 @@ export interface AlRouteAction
 }
 
 /**
+ *  @public
+ *
  *  This is an abstract definition for a single menu item or menu container.
  */
 export interface AlRouteDefinition {
@@ -148,8 +155,10 @@ export interface AlRouteDefinition {
 }
 
 /**
- * An AlRoute is an instantiated route definition, attached to a routing host, and capable of actually calculating target URLs based on context
- * and handling navigation events.
+ *  @public
+ *
+ *  An AlRoute is an instantiated route definition, attached to a routing host, and capable of actually calculating target URLs based on context
+ *  and handling navigation events.
  */
 export class AlRoute {
 
@@ -249,9 +258,9 @@ export class AlRoute {
     /**
      * Refreshes the state of a given route.
      *
-     * @param {boolean} resolve If true, forces the calculated href and visibility properties to be recalculated.
+     * @param resolve - If true, forces the calculated href and visibility properties to be recalculated.
      *
-     * @returns {boolean} Returns true if the route (or one of its children) is activated, false otherwise.
+     * @returns Returns true if the route (or one of its children) is activated, false otherwise.
      */
     refresh( resolve:boolean = false ):boolean|undefined {
 
@@ -608,6 +617,8 @@ export class AlRoute {
 }
 
 /**
+ * @public
+ *
  * This is a top-level interface for the structure of a schema document, which is a set of compiled menus and behavioral rules.
  */
 export interface AlNavigationSchema

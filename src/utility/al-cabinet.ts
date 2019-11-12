@@ -1,13 +1,18 @@
 /**
  *  A (very) simple wrapper for localStorage and sessionStorage, written with expirable cachability in mind.
  *
- *  @author McNielsen <knielsen@alertlogic.com>
- *
- *  @copyright Alert Logic Inc., 2019.
+ *  Author: McNielsen <knielsen@alertlogic.com>
+ *  Copyright Alert Logic Inc., 2019.
  */
 
 import { AlStopwatch } from './al-stopwatch';
 
+/**
+ * @public
+ *
+ * AlCabinet provides a simple, generic interface for caching arbitrary data.  It supports optional serialization to localStorage
+ * and sessionStorage, where available, but will gracefully fallback to in-memory-cache mode in their absence.
+ */
 export class AlCabinet
 {
     /**
@@ -33,9 +38,9 @@ export class AlCabinet
     /**
      *  Instantiates a persistent information cache (uses localStorage), deserializing data from the provided name if it exists.
      *
-     *  @param {string} name The name of the data cluster.
+     *  @param rawName - The name of the data cluster.
      *
-     *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
+     *  @returns A cabinet instance that can be used to interrogate/update the data.
      */
 
     public static persistent( rawName:string ):AlCabinet {
@@ -63,9 +68,9 @@ export class AlCabinet
     /**
      *  Instantiates a temporary information cache (uses sessionStorage), deserializing data from the provided name if it exists.
      *
-     *  @param {string} name The name of the data cluster.
+     *  @param rawName - The name of the data cluster.
      *
-     *  @returns {AlCabinet} A cabinet instance that can be used to interrogate/update the data.
+     *  @returns A cabinet instance that can be used to interrogate/update the data.
      */
 
     public static ephemeral( rawName:string ):AlCabinet {
@@ -93,9 +98,9 @@ export class AlCabinet
     /**
      *  Instantiates a local cache (uses no storage or persistence).
      *
-     *  @param {string} name The name of the data cluster
+     *  @param name - The name of the data cluster
      *
-     *  @returns {AlCabinet} A cabinet instance that can be used just to hold arbitrary data.
+     *  @returns A cabinet instance that can be used just to hold arbitrary data.
      */
     public static local( name:string ):AlCabinet {
         if ( AlCabinet.openCabinets.hasOwnProperty( name ) ) {
@@ -109,11 +114,11 @@ export class AlCabinet
     /**
      *  Retrieves a property from the cabinet.
      *
-     *  @param {string} property The name of the property.
-     *  @param {any} defaultValue The value to return if the property doesn't exist (defaults to null).
-     *  @param {boolean} disableExpiration Indicates whether or not time-based expiration rules should be honored.
+     *  @param property - The name of the property.
+     *  @param defaultValue - The value to return if the property doesn't exist (defaults to `null`).
+     *  @param disableExpiration - Indicates whether or not time-based expiration rules should be honored.
      *
-     *  @returns {any} The value of the property (or provided default)
+     *  @returns The value of the property (or provided default)
      */
 
     public get( property:string, defaultValue:any = null, disableExpiration:boolean = false ):any {
@@ -132,11 +137,11 @@ export class AlCabinet
     }
 
     /**
-     *  Check to see if a property is present in the cabinet.
+     *  Checks to see if a property is present in the cabinet.
      *
-     *  @param {string} property The name of the property.
+     *  @param property - The name of the property.
      *
-     *  @returns {boolean} True if the property exists, false otherwise.
+     *  @returns `true` if the property exists, `false` otherwise.
      */
     public exists( property:string ):boolean {
         return this.data.hasOwnProperty( property );
@@ -145,9 +150,9 @@ export class AlCabinet
     /**
      *  Checks to see if a given property is expired.
      *
-     *  @param {string} property The name of the property to check expiration for.
+     *  @param property - The name of the property to check expiration for.
      *
-     *  @returns {boolean} True if the property either does not exist or has expired, false otherwise.
+     *  @returns `true` if the property either does not exist or has expired, `false` otherwise.
      */
     public expired( property:string ):boolean {
         if ( ! this.data.hasOwnProperty( property ) ) {
@@ -161,11 +166,11 @@ export class AlCabinet
     /**
      *  Sets a property in the cabinet (and schedules synchronization)
      *
-     *  @param {string} property The name of the property.
-     *  @param {any} value The value to set it to.
-     *  @param {number} ttl The number of seconds the data should be retained for.  Defaults to 0 (indefinite).
+     *  @param property - The name of the property.
+     *  @param value - The value to set it to.
+     *  @param ttl - The number of seconds the data should be retained for.  Defaults to `0` (indefinite).
      *
-     *  @returns {AlCabinet} returns the instance so that calls to it may be chained, if desired.
+     *  @returns A reference to the cabinet instance, so that calls to it may be chained.
      */
     public set( property:string, value:any, ttl:number = 0 ) {
         if ( value === null || value === undefined ) {
@@ -185,9 +190,9 @@ export class AlCabinet
     /**
      *  Deletes a property in the cabinet (and schedules synchronization)
      *
-     *  @param {string} property The property to be deleted.
+     *  @param property - The property to be deleted.
      *
-     *  @returns {AlCabinet} returns the instance so that calls may be chained, if desired.
+     *  @returns A reference to the cabinet instance, so that calls to it may be chained.
      */
     public delete( property:string ) {
         if ( this.data.hasOwnProperty( property ) ) {
@@ -217,7 +222,7 @@ export class AlCabinet
     /**
      *  Synchronizes data back into the storage facility after performing a garbage collection run.
      *
-     *  @returns {AlCabinet} the class instance.
+     *  @returns The class instance.
      */
     public synchronize = () => {
         /**

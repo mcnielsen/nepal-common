@@ -1,5 +1,10 @@
 import { AlLocationDescriptor, AlLocation } from './al-locator.types';
 
+/**
+ * @public
+ *
+ * A dictionary of public Alert Logic resource locations, subkeyed by residency and environment.
+ */
 /* tslint:disable:variable-name */
 export const AlLocationDictionary: AlLocationDescriptor[] =
 [
