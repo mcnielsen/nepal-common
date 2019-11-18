@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { describe } from 'mocha';
 import { AlBehaviorPromise } from '../src/promises';
+import * as sinon from 'sinon';
 
 describe( 'AlBehaviorPromise', () => {
 
@@ -9,12 +10,15 @@ describe( 'AlBehaviorPromise', () => {
     let resolver1 = ( value:number ) => { results.resolver1 = value; };
     let resolver2 = ( value:number ) => { results.resolver2 = value; };
     let resolver3 = ( value:number ) => { results.resolver3 = value; };
+    let rejector = ( reason:string ) => { results.rejected = true; results.rejectionReason = reason; };
 
     beforeEach( () => {
         results = {
             resolver1: null,
             resolver2: null,
-            resolver3: null
+            resolver3: null,
+            rejected: false,
+            rejectionReason: null
         };
     } );
 
@@ -40,7 +44,6 @@ describe( 'AlBehaviorPromise', () => {
     } );
 
     it( 'should handle successive resolutions and stay in a fulfilled state with the last value', async () => {
-
         behavior.then( resolver1 );     //  subscribe
         await behavior.resolve( 42 );   //  received by resolver1
         await behavior.resolve( 64 );   //  change value
@@ -55,9 +58,11 @@ describe( 'AlBehaviorPromise', () => {
     } );
 
     it( "should correctly handle being 'rescinded'", async () => {
-        behavior.then( resolver1 );
-        await behavior.resolve( 13 );   //  resolver1 -> 13
+        /* test else */
+        behavior = new AlBehaviorPromise();
+        behavior.rescind();
 
+        behavior = new AlBehaviorPromise( 10000 );
         behavior.rescind();             //  this should put the promise back into "unfulfilled" state
 
         expect( behavior.isFulfilled() ).to.equal( false );
@@ -75,6 +80,20 @@ describe( 'AlBehaviorPromise', () => {
         expect( behavior.isFulfilled() ).to.equal( true );
         expect( behavior.getValue() ).to.equal( 16 );
 
+    } );
+
+    it( "should correctly handle being 'rejected'", async () => {
+        behavior = new AlBehaviorPromise();
+        behavior.then( resolver1 );
+        await behavior.reject("Something gun wrong.");
+        expect( behavior.isFulfilled() ).to.equal( true );
+
+        behavior = new AlBehaviorPromise();
+
+        behavior.then( resolver1, rejector );
+        await behavior.reject( "Something broked." );
+        expect( results.rejected ).to.equal( true );
+        expect( results.rejectionReason ).to.equal( "Something broked." );
     } );
 
 } );

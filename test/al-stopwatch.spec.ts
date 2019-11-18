@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { describe, before } from 'mocha';
 import { AlBehaviorPromise } from '../src/promises';
 import { AlStopwatch } from '../src/utility';
+import * as sinon from 'sinon';
 
 describe( 'AlStopwatch', () => {
 
@@ -13,6 +14,10 @@ describe( 'AlStopwatch', () => {
 
     beforeEach( () => {
         callCount = 0;
+    } );
+
+    afterEach( () => {
+        afterEach( () => sinon.restore() );
     } );
 
     it("should instantiate via `later`", () => {
@@ -61,6 +66,47 @@ describe( 'AlStopwatch', () => {
                 resolve( true );
             }, 250 );
 
+        } );
+    } );
+
+    describe( "`.again()`", async () => {
+        it( "should not create a new timer if one already exists", () => {
+            stopwatch = AlStopwatch.repeatedly( callback, 10000 );
+            const originalTimer = stopwatch.timer;
+            expect( stopwatch.interval ).to.equal( 10000 );
+            stopwatch.again( 0 );
+            expect( stopwatch.timer ).to.equal( originalTimer );
+            expect( stopwatch.interval ).to.equal( 10000 );
+        } );
+    } );
+
+    describe( "`.reschedule()`", async () => {
+        it( "should call `cancel` and `again`", async () => {
+            stopwatch = AlStopwatch.later( callback );
+            let cancel = sinon.spy( stopwatch, "cancel" );
+            let again = sinon.spy( stopwatch, "again" );
+            stopwatch.reschedule( 10000 );
+            expect( cancel.callCount ).to.equal( 1 );
+            expect( again.callCount ).to.equal( 1 );
+            expect( again.args[0][0] ).to.equal( 10000 );
+        } );
+
+        it( "should default to immediate reexecution", async () => {
+            stopwatch = AlStopwatch.later( callback );
+            let again = sinon.spy( stopwatch, "again" );
+            stopwatch.reschedule();
+            expect( again.callCount ).to.equal( 1 );
+            expect( again.args[0][0] ).to.equal( 0 );
+        } );
+    } );
+
+    describe( "`.reschedule()`", async () => {
+        it( "should call `cancel` and `again`", async () => {
+            stopwatch = AlStopwatch.later( callback );
+            let tick = sinon.spy( stopwatch, "tick" );
+            stopwatch.now();
+            expect( tick.callCount ).to.equal( 1 );
+            expect( callCount ).to.equal( 1 );
         } );
     } );
 

@@ -151,7 +151,7 @@ describe( 'AlRoute', () => {
                 action: {
                     type: 'link',
                     location: AlLocation.OverviewUI,
-                    path: '/#/path/to/:accountId/:userId?/:deploymentId?'
+                    path: '/#/path/to/:accountId/:userId%/:deploymentId%'
                 },
                 properties: {}
             } );
@@ -236,6 +236,21 @@ describe( 'AlRoute', () => {
             menu.refresh();
 
             expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/2" );
+            expect( menu.activated ).to.equal( true );
+        } );
+        it( "should ignore query parameters", () => {
+            routingHost.currentUrl = "https://console.overview.alertlogic.com/#/queryparams/2?aaid=2&locid=defender-us-denver&filter1=value1&filter2=value2";
+            const menu = new AlRoute( routingHost, {
+                caption: "Test Route",
+                action: {
+                    type: 'link',
+                    location: "cd17:overview",
+                    path: '/#/queryparams/:accountId?locid=defender-us-denver&filter1=value1&aaid=2&filter2=value2'
+                },
+                properties: {}
+            } );
+            menu.refresh();
+
             expect( menu.activated ).to.equal( true );
         } );
     } );

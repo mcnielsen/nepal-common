@@ -393,11 +393,11 @@ export class AlRoute {
         let path = action.path ? action.path : '';
         let missing = false;
         //  Substitute route parameters into the path pattern; fail on missing required parameters,
-        //  ignore missing optional parameters (denoted by question mark), and trim any trailing slashes and spaces.
-        path = path.replace( /:[a-zA-Z_?]+/g, match => {
+        //  ignore missing optional parameters (denoted by percentage sign), and trim any trailing slashes and spaces.
+        path = path.replace( /:[a-zA-Z_%]+/g, match => {
                 let variableId = match.substring( 1 );
                 let required = true;
-                if ( variableId[variableId.length-1] === '?' ) {
+                if ( variableId[variableId.length-1] === '%' ) {
                     required = false;
                     variableId = variableId.substring( 0, variableId.length - 1 );
                 }
