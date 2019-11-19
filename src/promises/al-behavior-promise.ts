@@ -13,7 +13,7 @@
  *  This class exposes the basic surface area of a Promise -- it is `then`able -- but allows the resolved value to change
  *  if necessary.
  */
-export class AlBehaviorPromise<ResultType>
+export class AlBehaviorPromise<ResultType=any>
 {
     protected promise:Promise<ResultType>;
     protected resolver?:{(result:ResultType):void};
@@ -49,6 +49,7 @@ export class AlBehaviorPromise<ResultType>
     public resolve( result:ResultType ) {
         this.value = result;
         if ( ! this.fulfilled ) {
+            /* istanbul ignore else */
             if(this.resolver) {
                 this.resolver( result );
             }
@@ -63,6 +64,7 @@ export class AlBehaviorPromise<ResultType>
     public reject( reason:any ) {
         this.value = null;
         if ( ! this.fulfilled ) {
+            /* istanbul ignore else */
             if(this.rejector){
                 this.rejector( reason );
             }

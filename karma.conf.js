@@ -31,7 +31,8 @@ module.exports = function (config) {
           "es2017",
           "dom"
         ],
-        esModuleInterop: true
+        esModuleInterop: true,
+        sourceMaps: true
       }
     },
 
