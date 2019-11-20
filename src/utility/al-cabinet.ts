@@ -241,7 +241,7 @@ export class AlCabinet
          *  Now, serialize the surviving data and put it into storage
          */
         try {
-            if ( localStorage && sessionStorage ) {
+            if ( typeof( window ) !== 'undefined' && localStorage && sessionStorage ) {
                 if ( this.type === AlCabinet.PERSISTENT ) {
                     localStorage.setItem( this.name, JSON.stringify( this.data ) );
                 } else if ( this.type === AlCabinet.EPHEMERAL ) {
