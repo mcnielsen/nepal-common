@@ -103,7 +103,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         insightLocationId: 'defender-us-ashburn',
         productType: 'defender',
         aspect: 'ui',
-        uri: 'https://cd-integration-console.alertlogic.net',
+        uri: 'https://console.alertlogic.net',
         environment: 'production|beta-nav-prod',
         residency: 'US',
         uiCaption: 'us-east-1',
