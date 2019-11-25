@@ -244,6 +244,7 @@ export class AlLocatorMatrix
             insightLocationId:  undefined,
             accessible:         undefined
         };
+        this.actingUri = undefined;
     }
 
     /**
