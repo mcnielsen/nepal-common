@@ -113,3 +113,32 @@ export class AlUnauthorizedRequestError extends AlBaseError
     }
 }
 
+/**
+ * @public
+ *
+ * Used to indicate that the request cannot be completed because the underlying functionality is incomplete or unimplemented.
+ *
+ * @param message - A general description of the error or error context.
+ */
+export class AlUnimplementedMethodError extends AlBaseError
+{
+    public httpResponseCode:number = 501;
+    constructor( message:string ) {
+        super( message );
+    }
+}
+
+/**
+ * @public
+ *
+ * Used to indicate that a resource does not exist.
+ *
+ * @param message - A general description of the error and error context.
+ */
+export class AlNotFoundError extends AlBaseError
+{
+    public httpResponseCode:number = 404;
+    constructor( message:string ) {
+        super( message );
+    }
+}
