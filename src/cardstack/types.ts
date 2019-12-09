@@ -10,6 +10,30 @@
  */
 
 /**
+ * Describes a specific property value.  Only necessary for values that can be filtered on.
+ */
+export interface AlCardstackValueDescriptor
+{
+    //  A reference to the property this value belongs to
+    property:AlCardstackPropertyDescriptor;
+
+    //  The discrete value (typically a string, but could be anything -- so long as it supports object equivalence and `toString()`
+    value:any;
+
+    //  caption
+    caption:string;
+
+    //  plural caption, if applicable
+    captionPlural:string;
+
+    //  Unique key for this value, defaulting to `${property}-${value.toString()}`
+    valueKey:string;
+
+    //  Should the filter be selected by default?
+    default?:boolean;           //  Should the filter be selected by default?
+}
+
+/**
  * This is an abstract description of a property.  Many of the individual properties may be omitted from a given instance.
  */
 export interface AlCardstackPropertyDescriptor
@@ -26,13 +50,8 @@ export interface AlCardstackPropertyDescriptor
     //  The user-friendly plural name
     captionPlural:string;
 
-    //  An array of possible values the property may have (value/caption pairs, plus an optional flag to indicate the filter should be on by default)
-    values: {
-        value:any;
-        caption:string;
-        captionPlural:string;
-        default?:boolean;
-    }[];
+    //  An array of possible values the property may have (value/caption pairs, plus some miscellaneous state properties)
+    values: AlCardstackValueDescriptor[];
 
     //  Indicates whether or not multiple items from this property can be selected (applies to filterable properties only)
     multiSelect?:boolean;
@@ -55,18 +74,18 @@ export interface AlCardstackCharacteristics
      *  Identifies a set of properties (referenced by ID) that the cardstack's content can be grouped by.
      *  An empty array indicates that grouping is not supported for this cardstack and the group by selector should not be shown.
      */
-    groupableBy: string|AlCardstackPropertyDescriptor[];
+    groupableBy: (string|AlCardstackPropertyDescriptor)[];
 
     /*  Identifies a set of properties (referenced by ID) that the cardstack's content can be sorted by.
      *  An empty array indicates that sorting is not supported for this cardstack and the sort by selector should not be shown.
      */
-    sortableBy: string|AlCardstackPropertyDescriptor[];
+    sortableBy: (string|AlCardstackPropertyDescriptor)[];
 
     /**
      *  Identifies a set of properties (referenced by ID) that the cardstack's content can be filtered by.
      *  An empty array indicates that filtering is not supported for this cardstack, and the filter panel should not be shown.
      */
-    filterableBy: string|AlCardstackPropertyDescriptor[];
+    filterableBy: (string|AlCardstackPropertyDescriptor)[];
 
     /**
      * If provided, indicates that the cards should be grouped into distinct sections based on a given attribute.
@@ -99,11 +118,20 @@ export interface AlCardstackAggregations
 }
 
 /**
+ * This is just a placeholder interface for whatever indexable properties a particular entity has.
+ */
+export interface AlCardstackItemProperties
+{
+    id:string;
+    caption:string;
+}
+
+/**
  *  Describes a cardstack item, representing a single entity inside the view.
  *  This simple wrapper object contains a caption, a handful of common properties (referenced by the cardstack's characteristics), and
  *  a blob referencing the underlying entity data.
  */
-export interface AlCardstackItem<EntityType=any>
+export interface AlCardstackItem<EntityType=any,PropertyType extends AlCardstackItemProperties=any>
 {
     /**
      * Each item has a unique identifier, although the format may vary by entity type or even be mixed across systems
@@ -128,7 +156,7 @@ export interface AlCardstackItem<EntityType=any>
     /**
      * Filterable/groupable/sortable properties
      */
-    properties:{[property:string]:any};
+    properties:PropertyType;
 
     /**
      * A reference to the minimial view of the underlying entity (e.g., incident, scheduled_report, observation, etc)
