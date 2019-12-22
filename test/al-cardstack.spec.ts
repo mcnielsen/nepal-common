@@ -72,6 +72,8 @@ const dummyCharacteristics:unknown = {
 
     filterableBy: [ "color", "shape", "category" ],
 
+    groupableBy: [],
+
     definitions: {
         "date_created": {
             property: "date_created",
@@ -90,6 +92,10 @@ const dummyCharacteristics:unknown = {
             property: "shape",
             caption: "Shape",
             values: dummyShapes
+        },
+        "category": {
+            property: "category",
+            caption: "Category"
         }
     }
 };

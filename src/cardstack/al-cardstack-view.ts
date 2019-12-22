@@ -23,6 +23,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public textFilter:      RegExp|null                                         =   null;
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;
+    public sortOrder:string                                                     =   "ASC";
 
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
@@ -169,7 +170,16 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
         if ( this.visibleCards < 20 && this.remainingPages > 0 ) {
             this.fetchData( false ).then( batch => {
-                console.log("Got next batch!", batch );
+                let newData = batch.map( entity => {
+                    const properties = this.deriveEntityProperties( entity );
+                    return {
+                        entity,
+                        properties,
+                        id: properties.id,
+                        caption: properties.caption
+                    };
+                } );
+                this.cards.push( ...newData );
             } );
         }
     }
@@ -207,7 +217,13 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     protected normalizeCharacteristics( characteristics:AlCardstackCharacteristics ) {
         try {
             let activeFilters:{[valueKey:string]:AlCardstackValueDescriptor} = {};
-            characteristics.sortableBy.forEach( descriptor => {
+            const properties = [
+                ...characteristics.sortableBy,
+                ...characteristics.filterableBy,
+                ...characteristics.groupableBy
+            ];
+
+            properties.forEach( descriptor => {
                 const propDescriptor = this.resolveDescriptor( descriptor );
                 if ( ! propDescriptor.values ) {
                     propDescriptor.values = [];
