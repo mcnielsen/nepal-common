@@ -38,10 +38,13 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     /**
      * Starts loading the view and digesting data
      */
-    public async start() {
+    public async start( initial : boolean ) {
+        if( initial ) {
+            this.cards = [];
+        }
         this.loading = true;
-        let entities = await this.fetchData( true );
-        this.cards = entities.map( entity => {
+        let entities = await this.fetchData( initial );
+        let cardsEntities = entities.map( entity => {
             let properties = this.deriveEntityProperties( entity );
             return {
                 properties,
@@ -50,6 +53,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
                 caption: properties.caption
             };
         } );
+        this.cards.push(...cardsEntities);
         this.cards = this.cards.map( c => this.evaluateCardState( c ) );
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
         console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
