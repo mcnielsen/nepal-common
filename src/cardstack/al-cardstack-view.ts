@@ -23,7 +23,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public textFilter:      RegExp|null                                         =   null;
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;
-    public sortOrder:string                                                     =   "ASC";
+    public sortOrder:       string                                              =   "ASC";
 
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
@@ -38,13 +38,10 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     /**
      * Starts loading the view and digesting data
      */
-    public async start( initial : boolean ) {
-        if( initial ) {
-            this.cards = [];
-        }
+    public async start() {
         this.loading = true;
-        let entities = await this.fetchData( initial );
-        let cardsEntities = entities.map( entity => {
+        let entities = await this.fetchData( true );
+        this.cards = entities.map( entity => {
             let properties = this.deriveEntityProperties( entity );
             return {
                 properties,
@@ -53,10 +50,31 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
                 caption: properties.caption
             };
         } );
-        this.cards.push(...cardsEntities);
         this.cards = this.cards.map( c => this.evaluateCardState( c ) );
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
         console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        this.loading = false;
+    }
+
+    /**
+     * Starts loading next batch data into view
+     */
+    public async continue() {
+        this.loading = true;
+        let entities = await this.fetchData( false );
+        let newData = entities.map( entity => {
+            let properties = this.deriveEntityProperties( entity );
+            return {
+                properties,
+                entity,
+                id: properties.id,
+                caption: properties.caption
+            };
+        } );
+        this.cards.push( ...newData );
+        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
+        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+        console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible)` );
         this.loading = false;
     }
 
@@ -282,4 +300,3 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         return description;
     }
 }
-
