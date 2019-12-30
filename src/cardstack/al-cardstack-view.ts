@@ -24,6 +24,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;
     public sortOrder:       string                                              =   "ASC";
+    public dateRange:       Date[]                                              =   [];
 
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
