@@ -23,7 +23,8 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public textFilter:      RegExp|null                                         =   null;
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;
-    public sortOrder:string                                                     =   "ASC";
+    public sortOrder:       string                                              =   "ASC";
+    public dateRange:       Date[]                                              =   [];
 
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
@@ -41,18 +42,19 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public async start() {
         this.loading = true;
         let entities = await this.fetchData( true );
-        this.cards = entities.map( entity => {
-            let properties = this.deriveEntityProperties( entity );
-            return {
-                properties,
-                entity,
-                id: properties.id,
-                caption: properties.caption
-            };
-        } );
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+        this.ingest( entities );
         console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        this.loading = false;
+    }
+
+    /**
+     * Starts loading next batch data into view
+     */
+    public async continue() {
+        this.loading = true;
+        let entities = await this.fetchData( false );
+        this.ingest( entities );
+        console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible)` );
         this.loading = false;
     }
 
@@ -162,6 +164,22 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      *  from other data -- that can be used to sort, filter, group, and segment by.
      */
     public abstract deriveEntityProperties( entity:EntityType ):PropertyType;
+
+    protected ingest( entities:EntityType[] ):number {
+        let newData = entities.map( entity => {
+            let properties = this.deriveEntityProperties( entity );
+            return {
+                properties,
+                entity,
+                id: properties.id,
+                caption: properties.caption
+            };
+        } );
+        this.cards.push( ...newData );
+        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
+        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+        return this.visibleCards;
+    }
 
     /**
      *  Refresh view after a change has been applied.
@@ -278,4 +296,3 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         return description;
     }
 }
-
