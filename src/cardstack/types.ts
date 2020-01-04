@@ -31,6 +31,9 @@ export interface AlCardstackValueDescriptor
 
     //  Should the filter be selected by default?
     default?:boolean;           //  Should the filter be selected by default?
+
+    // If the value has an aggregate count
+    count ?: number;
 }
 
 /**
