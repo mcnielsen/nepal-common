@@ -58,7 +58,10 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         this.loading = false;
     }
 
-    public getProperty( propertyId:string ):AlCardstackPropertyDescriptor {
+    public getProperty( propertyId:string|AlCardstackPropertyDescriptor ):AlCardstackPropertyDescriptor {
+        if ( typeof( propertyId ) === 'object' ) {
+            return propertyId;
+        }
         if ( ! this.characteristics.definitions.hasOwnProperty( propertyId ) ) {
             throw new Error(`Internal error: cannot access undefined property '${propertyId}'` );
         }
@@ -234,6 +237,17 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      */
     protected normalizeCharacteristics( characteristics:AlCardstackCharacteristics ) {
         try {
+            characteristics = {
+                entity: characteristics.entity,
+                groupableBy: characteristics.groupableBy || [],
+                sortableBy: characteristics.sortableBy || [],
+                filterableBy: characteristics.filterableBy || [],
+                definitions: characteristics.definitions || {},
+                allowSelectAll: false,
+                greedyConsumer: false,
+                filterValueLimit: 10,
+                filterValueIncrement: 10
+            };
             let activeFilters:{[valueKey:string]:AlCardstackValueDescriptor} = {};
             const properties = [
                 ...characteristics.sortableBy,
@@ -256,6 +270,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
                     }
                 } );
             } );
+
         } catch( e ) {
             throw new Error(`Failed to normalize characteristics object: ${e.message}` );
         }
