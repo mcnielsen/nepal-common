@@ -102,10 +102,41 @@ export interface AlCardstackCharacteristics
     definitions: {[propertyId:string]:AlCardstackPropertyDescriptor};
 
     /**
+     * BEHAVIORAL CONTROLS
+     */
+
+    /**
+     * Should "select all" functionality be exposed?  Default: false
+     */
+    allowSelectAll:boolean;
+
+    /**
+     * Should the freeform text search be exposed?  Absence of this property indicates false.
+     */
+    search?: {
+        maxSearchLength?:number;    //  maximum length of search string?  default: unlimited
+        textPlaceholder?:string;    //  text placeholder?  default: "search"
+    };
+
+    /**
+     * Should the date range selector be exposed?  Absence of this property indicates false.
+     */
+    dateSelector?: {
+        mode?:"range"|"single";     //  date selector mode; defaults to 'range'
+    };
+
+    /**
      * If true, indicates that the client should read all available data aggressively.  This is useful for views/entities where aggregation
      * cannot be provided service side and must be tabulated dynamically in the client.
      */
-    greedyConsumer?:boolean;
+    greedyConsumer:boolean;
+
+    /**
+     * For filters with many values, these specify the maximum initial list size per filter
+     * and the number of additional items that should be exposed with each press of "Show More"
+     */
+    filterValueLimit: number;
+    filterValueIncrement: number;
 }
 
 /**
