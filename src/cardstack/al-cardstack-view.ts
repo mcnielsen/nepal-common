@@ -42,6 +42,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     public async start() {
         this.loading = true;
         let entities = await this.fetchData( true );
+        this.cards = [];
         this.ingest( entities );
         console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
         this.loading = false;
