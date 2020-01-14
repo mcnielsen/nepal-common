@@ -12,28 +12,38 @@ import {
  */
 export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCardstackItemProperties=any>
 {
-    public loading:boolean                      =   false;
+    public characteristics?:AlCardstackCharacteristics                          =   undefined;  //  Characteristics of the view: fields, types, behaviors, etc.
 
-    public loadedPages:number                   =   0;
-    public remainingPages:number                =   1;
+    public loading:boolean                                                      =   false;      //  Indicates whether or not the view is currently loading
+    public verbose:boolean                                                      =   false;      //  Print (maybe) useful console output for debugging purposes
 
-    public cards:AlCardstackItem<EntityType>[]  =   [];
-    public visibleCards:number                  =   0;
+    public loadedPages:number                                                   =   0;          //  Number of pages currently retrieved
+    public remainingPages:number                                                =   1;          //  Number of pages of data remaining (or 1, if unknown); 0 when load is complete/EOS
 
-    public textFilter:      RegExp|null                                         =   null;
-    public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;
-    public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;
-    public sortOrder:       string                                              =   "ASC";
+    public cards:AlCardstackItem<EntityType>[]                                  =   [];         //  All cards loaded, both visible and invisible, in current sort order
+    public visibleCards:number                                                  =   0;          //  Number of cards currently visible in view
+
+    public textFilter:      RegExp|null                                         =   null;       //  Regular expression to filter results with (deprecated?)
+    public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;       //  Grouping property
+    public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;       //  Sortation property
+    public sortOrder:       string                                              =   "ASC";      //  Sortation direction, either "ASC" or "DESC".  Yes, "sortation" is a real word ;-)
     public dateRange:       Date[]                                              =   [];
 
+    //  Defines which filters are currently "active"
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
+    //  If defined, indicates the view has failed to load and optionally provides description and details of error
+    public error?: { description?:string; details?:any; }                       =   undefined;
+
+    //  Aggregation data
     public aggregations:AlCardstackAggregations = {
         properties: {}
     };
 
-    constructor( public characteristics:AlCardstackCharacteristics ) {
-        this.normalizeCharacteristics( characteristics );
+    constructor( characteristics?:AlCardstackCharacteristics ) {
+        if ( characteristics ) {
+            this.normalizeCharacteristics( characteristics );
+        }
     }
 
     /**
@@ -41,10 +51,19 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      */
     public async start() {
         this.loading = true;
+        if ( ! this.characteristics ) {
+            if ( ! this.generateCharacteristics ) {
+                throw new Error("Usage error: AlCardstackView extensions must either be constructed with characteristics or provide a `generateCharacteristics` method." );
+            }
+            const characteristics = await this.generateCharacteristics();
+            this.normalizeCharacteristics( characteristics );
+        }
         let entities = await this.fetchData( true );
         this.cards = [];
         this.ingest( entities );
-        console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        if ( this.verbose ) {
+            console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        }
         this.loading = false;
     }
 
@@ -55,7 +74,13 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         this.loading = true;
         let entities = await this.fetchData( false );
         this.ingest( entities );
-        console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        if ( this.verbose ) {
+            console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
+        }
+        if ( this.characteristics.greedyConsumer && this.remainingPages > 0 ) {
+            //  In greedy consumer mode, we essentially retrieve the entire dataset sequentially as part of the load cycle
+            await this.continue();
+        }
         this.loading = false;
     }
 
@@ -95,7 +120,9 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      *  Applies grouping logic to the current view, or clears grouping if `property` is null.
      */
     public applyGroupingBy( descriptor:AlCardstackPropertyDescriptor|null ):boolean {
-        console.log("Placeholder", descriptor );
+        if ( this.verbose ) {
+            console.log("Placeholder", descriptor );
+        }
         return true;
     }
 
@@ -135,7 +162,9 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         this.activeFilters[propertyName][descriptor.valueKey] = descriptor;
         this.cards = this.cards.map( c => this.evaluateCardState( c ) );
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-        console.log( `After filter applied: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        if ( this.verbose ) {
+            console.log( `After filter applied: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        }
         return false;
     }
 
@@ -153,7 +182,9 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
             delete this.activeFilters[propertyName];
         }
         this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        console.log( `After filter removed: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        if ( this.verbose ) {
+            console.log( `After filter removed: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        }
         return false;
     }
 
@@ -168,6 +199,11 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      *  from other data -- that can be used to sort, filter, group, and segment by.
      */
     public abstract deriveEntityProperties( entity:EntityType ):PropertyType;
+
+    /**
+     *  Optional method to generate characteristics asynchronously, after constructor has executed.
+     */
+    public async generateCharacteristics?():Promise<AlCardstackCharacteristics>;
 
     protected ingest( entities:EntityType[] ):number {
         let newData = entities.map( entity => {
@@ -234,11 +270,12 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     }
 
     /**
-     *  Utility method to normalize and validate an input characteristics definitions
+     *  Utility method to normalize and validate an input characteristics definitions, and then store it
+     *  to the instance's `characteristics` property.
      */
     protected normalizeCharacteristics( characteristics:AlCardstackCharacteristics ) {
         try {
-            characteristics = {
+            this.characteristics = {
                 entity: characteristics.entity,
                 groupableBy: characteristics.groupableBy || [],
                 sortableBy: characteristics.sortableBy || [],
