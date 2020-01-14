@@ -77,7 +77,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         if ( this.verbose ) {
             console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
         }
-        if ( this.characteristics.greedyConsumer && this.remainingPages > 0 ) {
+        if ( this.characteristics && this.characteristics.greedyConsumer && this.remainingPages > 0 ) {
             //  In greedy consumer mode, we essentially retrieve the entire dataset sequentially as part of the load cycle
             await this.continue();
         }
@@ -88,10 +88,13 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         if ( typeof( propertyId ) === 'object' ) {
             return propertyId;
         }
-        if ( ! this.characteristics.definitions.hasOwnProperty( propertyId ) ) {
+        if ( this.characteristics && ! this.characteristics.definitions.hasOwnProperty( propertyId ) ) {
             throw new Error(`Internal error: cannot access undefined property '${propertyId}'` );
         }
-        return this.characteristics.definitions[propertyId];
+        if(this.characteristics){
+            return this.characteristics.definitions[propertyId];
+        }
+        throw new Error(`Internal error: cannot access undefined property '${propertyId}'` );
     }
 
     public getValue( propertyId:string|AlCardstackPropertyDescriptor, value:any ):AlCardstackValueDescriptor {
@@ -316,16 +319,18 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
 
     protected resolveDescriptor( descriptor:string|AlCardstackPropertyDescriptor ):AlCardstackPropertyDescriptor {
         if ( typeof( descriptor ) === 'string' ) {
-            if ( this.characteristics.definitions.hasOwnProperty( descriptor ) ) {
+            if ( this.characteristics && this.characteristics.definitions.hasOwnProperty( descriptor ) ) {
                 return this.characteristics.definitions[descriptor];
             } else {
                 throw new Error(`sort property descriptor '${descriptor}' not found in definitions dictionary.` );
             }
         } else {
-            if ( this.characteristics.definitions.hasOwnProperty( descriptor.property ) ) {
+            if ( this.characteristics && this.characteristics.definitions.hasOwnProperty( descriptor.property ) ) {
                 throw new Error(`there are multiple descriptors for the property '${descriptor.property}'; these should be consolidated into the definitions dictionary.` );
             }
-            this.characteristics.definitions[descriptor.property] = descriptor;
+            if(this.characteristics){
+                this.characteristics.definitions[descriptor.property] = descriptor;
+            }
         }
         return descriptor;
     }
