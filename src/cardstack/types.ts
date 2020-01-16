@@ -188,6 +188,11 @@ export interface AlCardstackItem<EntityType=any,PropertyType extends AlCardstack
     expanded?:boolean;
 
     /**
+     * Indicates which segment the data belongs to, if any
+     */
+    segment?:AlCardstackValueDescriptor;
+
+    /**
      * Filterable/groupable/sortable properties
      */
     properties:PropertyType;

@@ -129,8 +129,8 @@ export interface DummyProperties
 export class DummyCardstack extends AlCardstackView<DummyModel,DummyProperties>
 {
     public count:number = 0;
-    constructor() {
-        super( dummyCharacteristics as AlCardstackCharacteristics );
+    constructor( cod:boolean = true ) {
+        super( cod ? dummyCharacteristics as AlCardstackCharacteristics : undefined );
     }
 
     oneOf( list:any[] ):any {
@@ -158,6 +158,10 @@ export class DummyCardstack extends AlCardstackView<DummyModel,DummyProperties>
         return results;
     }
 
+    async generateCharacteristics() {
+        return dummyCharacteristics as AlCardstackCharacteristics;
+    }
+
     deriveEntityProperties( entity ) {
         return {
             id: entity.entityId,
@@ -173,6 +177,12 @@ export class DummyCardstack extends AlCardstackView<DummyModel,DummyProperties>
 describe( 'AlCardstackView', () => {
 
     describe("`start()` method", () => {
+        it( 'should call generateCharacteristics if no characteristics are provided to the constructor', async () => {
+            let stack = new DummyCardstack( false );    //  no characteristics
+            let spy = sinon.spy( stack, 'generateCharacteristics' );
+            await stack.start();
+            expect( spy.callCount ).to.equal( 1 );
+        } );
         it( 'should consume data as expected', async () => {
 
             let stack = new DummyCardstack();
