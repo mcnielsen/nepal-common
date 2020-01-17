@@ -335,7 +335,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         data: {
           clientID: '6T6zEBgX0WMqksT8mC20c1OvvGqH7Jbj'
         },
-        environment: 'integration'
+        environment: 'integration|beta-navigation'
     },
     {
         locTypeId: AlLocation.Auth0,
