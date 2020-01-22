@@ -10,9 +10,11 @@ import {
 /**
  *  Manages a cardstack view state
  */
-export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCardstackItemProperties=any>
+export abstract class AlCardstackView< EntityType=any,
+                                       PropertyType extends AlCardstackItemProperties=any,
+                                       CharacteristicsType extends AlCardstackCharacteristics = AlCardstackCharacteristics>
 {
-    public characteristics?:AlCardstackCharacteristics                          =   undefined;  //  Characteristics of the view: fields, types, behaviors, etc.
+    public characteristics?:CharacteristicsType                                 =   undefined;  //  Characteristics of the view: fields, types, behaviors, etc.
 
     public loading:boolean                                                      =   false;      //  Indicates whether or not the view is currently loading
     public verbose:boolean                                                      =   false;      //  Print (maybe) useful console output for debugging purposes
@@ -40,7 +42,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
         properties: {}
     };
 
-    constructor( characteristics?:AlCardstackCharacteristics ) {
+    constructor( characteristics?:CharacteristicsType ) {
         if ( characteristics ) {
             this.normalizeCharacteristics( characteristics );
         }
@@ -206,7 +208,7 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
     /**
      *  Optional method to generate characteristics asynchronously, after constructor has executed.
      */
-    public async generateCharacteristics?():Promise<AlCardstackCharacteristics>;
+    public async generateCharacteristics?():Promise<CharacteristicsType>;
 
     protected ingest( entities:EntityType[] ):number {
         let newData = entities.map( entity => {
@@ -276,19 +278,15 @@ export abstract class AlCardstackView<EntityType=any,PropertyType extends AlCard
      *  Utility method to normalize and validate an input characteristics definitions, and then store it
      *  to the instance's `characteristics` property.
      */
-    protected normalizeCharacteristics( characteristics:AlCardstackCharacteristics ) {
+    protected normalizeCharacteristics( characteristics:CharacteristicsType ) {
         try {
-            this.characteristics = {
-                entity: characteristics.entity,
-                groupableBy: characteristics.groupableBy || [],
-                sortableBy: characteristics.sortableBy || [],
-                filterableBy: characteristics.filterableBy || [],
-                definitions: characteristics.definitions || {},
-                allowSelectAll: false,
-                greedyConsumer: false,
-                filterValueLimit: 10,
-                filterValueIncrement: 10
-            };
+            characteristics.groupableBy         =   characteristics.groupableBy || [];
+            characteristics.sortableBy          =   characteristics.sortableBy || [];
+            characteristics.filterableBy        =   characteristics.filterableBy || [];
+            characteristics.definitions         =   characteristics.definitions || {};
+            characteristics.filterValueLimit    =   characteristics.filterValueLimit || 10;
+            characteristics.filterValueIncrement=   characteristics.filterValueIncrement || 10;
+            this.characteristics = characteristics;
             let activeFilters:{[valueKey:string]:AlCardstackValueDescriptor} = {};
             const properties = [
                 ...characteristics.sortableBy,
