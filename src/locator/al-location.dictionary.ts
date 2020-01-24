@@ -186,7 +186,12 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     {
         locTypeId: AlLocation.HudUI,
         uri: 'https://console.hudui.product.dev.alertlogic.com',
-        environment: 'integration'
+        environment: 'integration',
+        aliases: [
+            `https://hud-ui.ui-dev.product.dev.alertlogic.com`,
+            `https://hud-ui-*.ui-dev.product.dev.alertlogic.com`,
+            `https://hud-ui-pr-*.ui-dev.product.dev.alertlogic.com`,
+        ],
     },
     {
         locTypeId: AlLocation.HudUI,
@@ -212,7 +217,12 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     {
         locTypeId: AlLocation.IrisUI,
         uri: 'https://iris.product.dev.alertlogic.com',
-        environment: 'integration'
+        environment: 'integration',
+        aliases: [
+            `https://iris-ui.ui-dev.product.dev.alertlogic.com`,
+            `https://iris-ui-*.ui-dev.product.dev.alertlogic.com`,
+            `https://iris-ui-pr-*.ui-dev.product.dev.alertlogic.com`,
+        ],
     },
     {
         locTypeId: AlLocation.IrisUI,
