@@ -175,13 +175,15 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         locTypeId: AlLocation.HudUI,
         uri: 'https://hud.iris.alertlogic.com',
         environment: 'production',
-        residency: 'US'
+        residency: 'US',
+        keyword: 'hud',
     },
     {
         locTypeId: AlLocation.HudUI,
         uri: 'https://hud.iris.alertlogic.co.uk',
         environment: 'production',
-        residency: 'EMEA'
+        residency: 'EMEA',
+        keyword: 'hud',
     },
     {
         locTypeId: AlLocation.HudUI,
@@ -192,11 +194,13 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
             `https://hud-ui-*.ui-dev.product.dev.alertlogic.com`,
             `https://hud-ui-pr-*.ui-dev.product.dev.alertlogic.com`,
         ],
+        keyword: 'hud',
     },
     {
         locTypeId: AlLocation.HudUI,
         uri: 'http://localhost:4202',
-        environment: 'development'
+        environment: 'development',
+        keyword: 'localhost'
     },
 
     /**
@@ -206,13 +210,15 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         locTypeId: AlLocation.IrisUI,
         uri: 'https://console.iris.alertlogic.com',
         environment: 'production',
-        residency: 'US'
+        residency: 'US',
+        keyword: 'iris',
     },
     {
         locTypeId: AlLocation.IrisUI,
         uri: 'https://console.iris.alertlogic.co.uk',
         environment: 'production',
-        residency: 'EMEA'
+        residency: 'EMEA',
+        keyword: 'iris',
     },
     {
         locTypeId: AlLocation.IrisUI,
@@ -223,11 +229,13 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
             `https://iris-ui-*.ui-dev.product.dev.alertlogic.com`,
             `https://iris-ui-pr-*.ui-dev.product.dev.alertlogic.com`,
         ],
+        keyword: 'iris',
     },
     {
         locTypeId: AlLocation.IrisUI,
         uri: 'http://localhost:4200',
-        environment: 'development'
+        environment: 'development',
+        keyword: 'localhost'
     },
 
     /**

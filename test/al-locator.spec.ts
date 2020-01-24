@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { describe, before } from 'mocha';
-import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorMatrix, AlLocationDictionary } from '../src/locator';
+import { describe } from 'mocha';
+import { AlLocation, AlLocationDescriptor, AlLocatorMatrix, AlLocationDictionary } from '../src/locator';
 
 describe( 'AlLocatorMatrix', () => {
 
@@ -60,6 +60,15 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.environment ).to.equal( "beta-navigation" );
             expect( node.residency ).to.equal( "US" );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
+            expect( node.uri ).to.equal( aliasNodeBase );
+
+            //  iris
+            aliasNodeURL = "https://iris-ui-pr-8.ui-dev.product.dev.alertlogic.com/";
+            aliasNodeBase = "https://iris-ui-pr-8.ui-dev.product.dev.alertlogic.com";
+            node = locator.getNodeByURI( aliasNodeURL );
+            expect( node ).to.be.an( "object" );
+            expect( node.environment ).to.equal( "integration" );
+            expect( node.locTypeId ).to.equal( AlLocation.IrisUI );
             expect( node.uri ).to.equal( aliasNodeBase );
         } );
 
