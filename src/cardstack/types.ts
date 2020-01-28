@@ -15,7 +15,7 @@
 export interface AlCardstackValueDescriptor
 {
     //  A reference to the property this value belongs to
-    property:AlCardstackPropertyDescriptor;
+    property:string;
 
     //  The discrete value (typically a string, but could be anything -- so long as it supports object equivalence and `toString()`
     value:any;
