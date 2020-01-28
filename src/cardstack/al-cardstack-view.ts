@@ -160,7 +160,7 @@ export abstract class AlCardstackView< EntityType=any,
      *  Returning `true` indicates that the current list of items needs to be flushed and data retrieval should start from scratch.
      */
     public applyFilterBy( descriptor:AlCardstackValueDescriptor ):boolean {
-        const propertyName = descriptor.property.property;
+        const propertyName = descriptor.property;
         if ( ! this.activeFilters.hasOwnProperty( propertyName ) ) {
             this.activeFilters[propertyName] = {};
         }
@@ -178,7 +178,7 @@ export abstract class AlCardstackView< EntityType=any,
      *  Returning `true` indicates that the current list of items needs to be flushed and data retrieval should start from scratch.
      */
     public removeFilterBy( descriptor:AlCardstackValueDescriptor ):boolean {
-        const propertyName = descriptor.property.property;
+        const propertyName = descriptor.property;
         if ( ! this.activeFilters.hasOwnProperty( propertyName ) ) {
             return false;
         }
@@ -300,7 +300,7 @@ export abstract class AlCardstackView< EntityType=any,
                     propDescriptor.values = [];
                 }
                 propDescriptor.values.forEach( valDescriptor => {
-                    valDescriptor.property = propDescriptor;
+                    valDescriptor.property = propDescriptor.property;
                     if ( ! valDescriptor.hasOwnProperty( "valueKey" ) ) {
                         valDescriptor.valueKey = `${propDescriptor.property}-${valDescriptor.value.toString()}`;
                     }
