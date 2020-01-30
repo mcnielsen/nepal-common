@@ -150,6 +150,9 @@ export interface AlRouteDefinition {
     /* Behavior inflection: if this item is enabled, enable the parent item and project into its href.  This is useful for top level menu items that should direct to a child route. */
     bubble?:boolean;
 
+    /* Behavior inflection: menu item can be visible even if the user is not authenticated.  This depends on the routing host exposing a route parameter "anonymous" with the value "true". */
+    isPublic?:boolean|null;
+
     /* Optional sub-route definitions.  If present, the first item whose `visible` conditions are met will have its `action` promoted into the main route definition. */
     options?: { visible?:AlRouteCondition|boolean, action:AlRouteAction|string }[];
 }
@@ -271,10 +274,28 @@ export class AlRoute {
         }
 
         /* Evaluate visibility */
+        this.visible = true;        //  true until proven otherwise
+        if ( this.parent ) {
+            if ( typeof( this.definition.isPublic ) === "undefined" && this.parent ) {
+                //  Selectively inherit parent's publicity specificer (null|true|false|undefined)
+                this.definition.isPublic = this.parent.definition.isPublic;
+            }
+        }
+
+        if ( this.host.routeParameters.hasOwnProperty("anonymous") ) {
+            if ( this.host.routeParameters.anonymous === "true" && this.definition.isPublic !== null ) {
+                //  If the current user is anonymous/unauthenticated and this route isn't public (undefined or null), then set visible to false
+                //  Important note: `null` does not trigger this logic, and the top route of each menu always has this property set to `null`.
+                this.visible = this.definition.isPublic ? true : false;
+            } else if ( this.host.routeParameters.anonymous === "false" && this.definition.isPublic === true ) {
+                //  If the current user is authenticated and this route is public ONLY (boolean true), then this route should not be visible
+                this.visible = false;
+            }
+        }
         if ( typeof( this.definition.options ) !== 'undefined' ) {
-            this.visible = this.evaluateRouteOptions();
+            this.visible = this.visible && this.evaluateRouteOptions();
         } else {
-            this.visible = this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible || false ) : true;
+            this.visible = this.visible && ( this.definition.hasOwnProperty( 'visible' ) ? this.evaluateCondition( this.definition.visible || false ) : true );
         }
 
         /* Evaluate children recursively, and deduce activation state from them. */
@@ -300,9 +321,12 @@ export class AlRoute {
             this.evaluateActivation();
         }
 
-        //  bubble to parent?
+        //  bubble route?  if so, push calculated activation/visibility/route state to parent.
+        //  useful note: this property works in a nested fashion, so grandchild elements can bubble up to their
+        //  grandparents if the parent/child node between them also has `bubble` set to true.
         if ( this.definition.bubble && this.parent ) {
             this.parent.activated = this.parent.activated || this.activated;
+            this.parent.visible = this.parent.visible || this.visible;
             this.parent.href = this.href;
         }
 
@@ -573,6 +597,8 @@ export class AlRoute {
         }
         return child || null;
     }
+
+
 
     /**
      * This method will return the deepest activated, childless route within its first activated child.  If this sounds obtuse,
