@@ -117,7 +117,7 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public applyTextFilter( filterPattern:RegExp|null ):boolean {
         this.textFilter = filterPattern;
-        this.refresh();
+        this.loadMore();
         return true;
     }
 
@@ -229,7 +229,7 @@ export abstract class AlCardstackView< EntityType=any,
     /**
      *  Refresh view after a change has been applied.
      */
-    protected refresh() {
+    public loadMore() {
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
         if ( this.visibleCards < 20 && this.remainingPages > 0 ) {
             this.fetchData( false ).then( batch => {
