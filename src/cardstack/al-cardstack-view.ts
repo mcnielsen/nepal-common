@@ -117,7 +117,7 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public applyTextFilter( filterPattern:RegExp|null ):boolean {
         this.textFilter = filterPattern;
-        this.refresh();
+        this.loadMore();
         return true;
     }
 
@@ -210,26 +210,10 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public async generateCharacteristics?():Promise<CharacteristicsType>;
 
-    protected ingest( entities:EntityType[] ):number {
-        let newData = entities.map( entity => {
-            let properties = this.deriveEntityProperties( entity );
-            return {
-                properties,
-                entity,
-                id: properties.id,
-                caption: properties.caption
-            };
-        } );
-        this.cards.push( ...newData );
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-        return this.visibleCards;
-    }
-
     /**
      *  Refresh view after a change has been applied.
      */
-    protected refresh() {
+    public loadMore() {
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
         if ( this.visibleCards < 20 && this.remainingPages > 0 ) {
             this.fetchData( false ).then( batch => {
@@ -245,6 +229,22 @@ export abstract class AlCardstackView< EntityType=any,
                 this.cards.push( ...newData );
             } );
         }
+    }
+
+    protected ingest( entities:EntityType[] ):number {
+        let newData = entities.map( entity => {
+            let properties = this.deriveEntityProperties( entity );
+            return {
+                properties,
+                entity,
+                id: properties.id,
+                caption: properties.caption
+            };
+        } );
+        this.cards.push( ...newData );
+        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
+        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+        return this.visibleCards;
     }
 
     /**
