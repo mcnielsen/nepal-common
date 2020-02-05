@@ -210,22 +210,6 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public async generateCharacteristics?():Promise<CharacteristicsType>;
 
-    protected ingest( entities:EntityType[] ):number {
-        let newData = entities.map( entity => {
-            let properties = this.deriveEntityProperties( entity );
-            return {
-                properties,
-                entity,
-                id: properties.id,
-                caption: properties.caption
-            };
-        } );
-        this.cards.push( ...newData );
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-        return this.visibleCards;
-    }
-
     /**
      *  Refresh view after a change has been applied.
      */
@@ -245,6 +229,22 @@ export abstract class AlCardstackView< EntityType=any,
                 this.cards.push( ...newData );
             } );
         }
+    }
+
+    protected ingest( entities:EntityType[] ):number {
+        let newData = entities.map( entity => {
+            let properties = this.deriveEntityProperties( entity );
+            return {
+                properties,
+                entity,
+                id: properties.id,
+                caption: properties.caption
+            };
+        } );
+        this.cards.push( ...newData );
+        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
+        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+        return this.visibleCards;
     }
 
     /**
