@@ -107,6 +107,20 @@ export class AlLocation
             },
             {
                 locTypeId: locTypeId,
+                environment: 'production-staging',
+                residency: 'US',
+                uri: `https://${appCode}-production-staging-us.ui-dev.product.dev.alertlogic.com`,
+                keyword: appCode
+            },
+            {
+                locTypeId: locTypeId,
+                environment: 'production-staging',
+                residency: 'EMEA',
+                uri: `https://${appCode}-production-staging-uk.ui-dev.product.dev.alertlogic.com`,
+                keyword: appCode
+            },
+            {
+                locTypeId: locTypeId,
                 environment: 'integration',
                 uri: `https://console.${appCode}.product.dev.alertlogic.com`,
                 aliases: [
