@@ -25,7 +25,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global-integration.product.dev.alertlogic.com',
-        environment: 'integration|beta-navigation|development|production-staging'
+        environment: 'integration|beta-navigation|development'
     },
 
     /**
