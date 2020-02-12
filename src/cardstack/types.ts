@@ -177,6 +177,11 @@ export interface AlCardstackItem<EntityType=any,PropertyType extends AlCardstack
      * A reference to the minimial view of the underlying entity (e.g., incident, scheduled_report, observation, etc)
      */
     entity:EntityType;
+
+    /**
+     * Indicates whether or not the given item is checked
+     */
+    checked?: boolean;
 }
 
 /**

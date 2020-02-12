@@ -221,7 +221,7 @@ describe( 'AlCardstackView', () => {
             let purple = stack.getValue( color, "purple" );
             let purple2 = stack.getValue( "color", "purple" );
             expect( purple ).to.equal( purple2 );
-            expect( purple.property ).to.equal( color );
+            expect( purple.property ).to.equal( color.property );
             expect( purple.value ).to.equal( "purple" );
             expect( purple.caption ).to.equal( "Purplepink" );
             expect( purple.valueKey ).to.equal( "color-purple" );
