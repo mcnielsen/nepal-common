@@ -194,6 +194,17 @@ export abstract class AlCardstackView< EntityType=any,
     }
 
     /**
+     * Allows to mark the all cards as checked or unchecked
+     * @param checked
+     */
+    public applySelect(checked: boolean):void {
+        this.cards = this.cards.map( c => {
+            c.checked = checked;
+            return c;
+        });
+    }
+
+    /**
      *  Retrieves the next page of items using the current group/sort criteria.  The derived class must provide an implementation of this method,
      *  and it should set the `remainingPages` value when it completes execution.
      */
