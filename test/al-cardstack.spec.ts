@@ -284,6 +284,7 @@ describe( 'AlCardstackView', () => {
             let firstCard = stack.cards[0];
             let color = stack.getValue( "color", firstCard.properties.color );
             stack.applyFilterBy( color );
+            stack.applyFiltersAndSearch();
             for ( let i = 0; i < stack.cards.length; i++ ) {
                 let card = stack.cards[i];
                 if ( typeof( card.properties.color ) === 'undefined' ) {
@@ -299,6 +300,7 @@ describe( 'AlCardstackView', () => {
             let firstCard = stack.cards[0];
             let color = stack.getValue( "color", firstCard.properties.color );
             stack.applyFilterBy( color );
+            stack.applyFiltersAndSearch();
             stack.removeFilterBy( color );
             for ( let i = 0; i < stack.cards.length; i++ ) {
                 let card = stack.cards[i];

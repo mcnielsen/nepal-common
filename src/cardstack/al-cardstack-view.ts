@@ -209,7 +209,7 @@ export abstract class AlCardstackView< EntityType=any,
      *  Returning `true` indicates that the current list of items needs to be flushed and data retrieval should start from scratch.
      */
     public applySortBy( descriptor:AlCardstackPropertyDescriptor, order:string = "DESC" ):boolean {
-        this.rawCards.sort( ( a, b ) => {
+        this.rawCards = this.rawCards.sort( ( a, b ) => {
             let pa = a.properties;
             let pb = b.properties;
             if ( typeof( pa[descriptor.property] ) === 'string' && typeof( pb[descriptor.property] ) === 'string' ) {
@@ -238,7 +238,6 @@ export abstract class AlCardstackView< EntityType=any,
             this.activeFilters[propertyName] = {};
         }
         this.activeFilters[propertyName][descriptor.valueKey] = descriptor;
-        this.applyFiltersAndSearch();
         return false;
     }
 
@@ -255,8 +254,6 @@ export abstract class AlCardstackView< EntityType=any,
         if ( Object.keys( this.activeFilters[propertyName] ).length === 0 ) {
             delete this.activeFilters[propertyName];
         }
-
-        this.applyFiltersAndSearch();
 
         return false;
     }
