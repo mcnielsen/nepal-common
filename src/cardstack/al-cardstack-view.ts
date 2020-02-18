@@ -19,8 +19,12 @@ export abstract class AlCardstackView< EntityType=any,
     public loading:boolean                                                      =   false;      //  Indicates whether or not the view is currently loading
     public verbose:boolean                                                      =   false;      //  Print (maybe) useful console output for debugging purposes
 
+    // pagination values
     public loadedPages:number                                                   =   0;          //  Number of pages currently retrieved
     public remainingPages:number                                                =   1;          //  Number of pages of data remaining (or 1, if unknown); 0 when load is complete/EOS
+    public localPagination: boolean                                             =  false;        // If we are going to use local pagination the remainingPages and loadedPages are going to be reseted in every filter or search
+    public itemsPerPage:number                                                  =  50;           // items per page default value
+    public rawCards:EntityType[]                                                =   [];         //  All cards loaded,is going to be used to make local pagination
 
     public cards:AlCardstackItem<EntityType>[]                                  =   [];         //  All cards loaded, both visible and invisible, in current sort order
     public visibleCards:number                                                  =   0;          //  Number of cards currently visible in view
@@ -30,7 +34,7 @@ export abstract class AlCardstackView< EntityType=any,
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;       //  Sortation property
     public sortOrder:       string                                              =   "ASC";      //  Sortation direction, either "ASC" or "DESC".  Yes, "sortation" is a real word ;-)
     public dateRange:       Date[]                                              =   [];
-
+    public checked: boolean = false;
     //  Defines which filters are currently "active"
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
@@ -61,8 +65,17 @@ export abstract class AlCardstackView< EntityType=any,
             this.normalizeCharacteristics( characteristics );
         }
         let entities = await this.fetchData( true );
+
+        if( this.localPagination ) {
+            this.rawCards = entities;
+            this.resetPagination(this.rawCards.length);
+            entities = entities.slice( 0, Math.min(this.itemsPerPage, entities.length ));
+        }
+
         this.cards = [];
         this.ingest( entities );
+
+
         if ( this.verbose ) {
             console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
         }
@@ -74,8 +87,18 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public async continue() {
         this.loading = true;
-        let entities = await this.fetchData( false );
+        let entities = [];
+
+        if (this.localPagination) {
+            entities = this.rawCards.slice(this.cards.length,  this.cards.length + this.itemsPerPage);
+            this.loadedPages++;
+            this.remainingPages--;
+        } else {
+            entities = await this.fetchData( false );
+        }
+
         this.ingest( entities );
+
         if ( this.verbose ) {
             console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
         }
@@ -84,6 +107,11 @@ export abstract class AlCardstackView< EntityType=any,
             await this.continue();
         }
         this.loading = false;
+    }
+
+    public resetPagination(total:number){
+        this.loadedPages = 0;
+        this.remainingPages = total / this.itemsPerPage;
     }
 
     public getProperty( propertyId:string|AlCardstackPropertyDescriptor ):AlCardstackPropertyDescriptor {
@@ -193,15 +221,20 @@ export abstract class AlCardstackView< EntityType=any,
         return false;
     }
 
+    public markCardsAsCheck ():void {
+        this.cards = this.cards.map( c => {
+            c.checked =  this.checked ;
+            return c;
+        });
+    }
+
     /**
      * Allows to mark the all cards as checked or unchecked
      * @param checked
      */
     public applySelect(checked: boolean):void {
-        this.cards = this.cards.map( c => {
-            c.checked = checked;
-            return c;
-        });
+        this.checked = checked;
+        this.markCardsAsCheck();
     }
 
     /**
@@ -255,6 +288,10 @@ export abstract class AlCardstackView< EntityType=any,
         this.cards.push( ...newData );
         this.cards = this.cards.map( c => this.evaluateCardState( c ) );
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
+
+        if (this.localPagination) {
+            this.markCardsAsCheck();
+        }
         return this.visibleCards;
     }
 
