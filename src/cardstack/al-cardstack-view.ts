@@ -72,16 +72,14 @@ export abstract class AlCardstackView< EntityType=any,
         this.cards = [];
 
         let ingestedCards = this.ingest( entities );
+        this.rawCards = ingestedCards;
+        this.filteredCards = ingestedCards;
 
         // if we have pagination enable just load a section of data
         if( this.localPagination ) {
-            this.rawCards = ingestedCards;
-            this.filteredCards = ingestedCards;
             this.startPagination(this.filteredCards);
         } else {
             // if we dont have pagination enable load all data
-            this.rawCards = ingestedCards;
-            this.filteredCards = ingestedCards;
             this.addNextSection(ingestedCards);
         }
 
