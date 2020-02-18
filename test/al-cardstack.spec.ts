@@ -162,6 +162,10 @@ export class DummyCardstack extends AlCardstackView<DummyModel,DummyProperties>
         return dummyCharacteristics as AlCardstackCharacteristics;
     }
 
+    cardsChange(){
+        // we can use this to recalculate stuff
+    }
+
     deriveEntityProperties( entity ) {
         return {
             id: entity.entityId,
