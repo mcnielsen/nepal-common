@@ -69,6 +69,14 @@ describe( 'AlStopwatch', () => {
         } );
     } );
 
+    it("should instantiate and resolve via `promise()`", async () => {
+        let promise = AlStopwatch.promise( 100 );
+        let executed:boolean = false;
+        promise.then( () => executed = true );
+        await promise;
+        expect( executed ).to.equal( true );
+    } );
+
     describe( "`.again()`", async () => {
         it( "should not create a new timer if one already exists", () => {
             stopwatch = AlStopwatch.repeatedly( callback, 10000 );
