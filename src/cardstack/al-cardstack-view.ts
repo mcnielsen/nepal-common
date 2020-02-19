@@ -77,7 +77,7 @@ export abstract class AlCardstackView< EntityType=any,
 
         // if we have pagination enable just load a section of data
         if( this.localPagination ) {
-            this.startPagination(this.filteredCards);
+            this.applyFiltersAndSearch();
         } else {
             // if we dont have pagination enable load all data
             this.addNextSection(ingestedCards);
@@ -360,6 +360,9 @@ export abstract class AlCardstackView< EntityType=any,
         } );
     }
 
+    /**
+     *  Method to determine visibility of an individual card item based on the current search text
+     */
     protected evaluateCardVisibilityBySearch( card:AlCardstackItem<EntityType,PropertyType>, search: RegExp|null):boolean {
         if (search === null) {
             return true;
