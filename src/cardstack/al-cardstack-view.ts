@@ -24,7 +24,8 @@ export abstract class AlCardstackView< EntityType=any,
     public remainingPages:number                                                =   1;          //  Number of pages of data remaining (or 1, if unknown); 0 when load is complete/EOS
     public localPagination: boolean                                             =  false;        // If we are going to use local pagination the remainingPages and loadedPages are going to be reseted in every filter or search
     public itemsPerPage:number                                                  =  50;           // items per page default value
-    public rawCards:EntityType[]                                                =   [];         //  All cards loaded,is going to be used to make local pagination
+    public rawCards:AlCardstackItem<EntityType>[] = [];         //  All cards loaded,is going to be used to make local pagination
+    public filteredCards:AlCardstackItem<EntityType>[] = [];
 
     public cards:AlCardstackItem<EntityType>[]                                  =   [];         //  All cards loaded, both visible and invisible, in current sort order
     public visibleCards:number                                                  =   0;          //  Number of cards currently visible in view
@@ -66,38 +67,59 @@ export abstract class AlCardstackView< EntityType=any,
         }
         let entities = await this.fetchData( true );
 
-        if( this.localPagination ) {
-            this.rawCards = entities;
-            this.resetPagination(this.rawCards.length);
-            entities = entities.slice( 0, Math.min(this.itemsPerPage, entities.length ));
-        }
-
+        this.rawCards = [];
+        this.filteredCards = [];
         this.cards = [];
-        this.ingest( entities );
 
+        let ingestedCards = this.ingest( entities );
+        this.rawCards = ingestedCards;
+        this.filteredCards = ingestedCards;
+
+        // if we have pagination enable just load a section of data
+        if( this.localPagination ) {
+            this.applyFiltersAndSearch();
+        } else {
+            // if we dont have pagination enable load all data
+            this.addNextSection(ingestedCards);
+        }
 
         if ( this.verbose ) {
             console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
         }
         this.loading = false;
+        if(this.onCardsChanged){
+            this.onCardsChanged();
+        }
     }
 
+    /** set the first page of the filteredCards */
+    public startPagination(filteredCards:{
+        properties: PropertyType;
+        entity: EntityType;
+        id: string;
+        caption: string;
+    }[]){
+        this.cards = filteredCards.slice( 0, Math.min(this.itemsPerPage, filteredCards.length ));
+        this.resetPagination(filteredCards.length);
+    }
     /**
      * Starts loading next batch data into view
      */
     public async continue() {
         this.loading = true;
         let entities = [];
+        let cardsSection = [];
 
         if (this.localPagination) {
-            entities = this.rawCards.slice(this.cards.length,  this.cards.length + this.itemsPerPage);
+            cardsSection = this.filteredCards.slice(this.cards.length,  this.cards.length + this.itemsPerPage);
             this.loadedPages++;
             this.remainingPages--;
         } else {
             entities = await this.fetchData( false );
+            cardsSection = this.ingest( entities );
         }
 
-        this.ingest( entities );
+        this.addNextSection(cardsSection);
 
         if ( this.verbose ) {
             console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
@@ -109,9 +131,15 @@ export abstract class AlCardstackView< EntityType=any,
         this.loading = false;
     }
 
+    /**
+     * calculate the remaining pages
+     * @param total items
+     */
     public resetPagination(total:number){
-        this.loadedPages = 0;
-        this.remainingPages = total / this.itemsPerPage;
+        if(this.itemsPerPage) {
+            this.loadedPages = 0;
+            this.remainingPages = total / this.itemsPerPage;
+        }
     }
 
     public getProperty( propertyId:string|AlCardstackPropertyDescriptor ):AlCardstackPropertyDescriptor {
@@ -139,13 +167,31 @@ export abstract class AlCardstackView< EntityType=any,
         return valueDescriptor;
     }
 
+    public applyFiltersAndSearch(){
+        this.filteredCards = this.rawCards.map( c => this.evaluateCardState( c ) ).filter((c) => c.visible);
+        this.visibleCards = this.filteredCards.length;
+
+        if(this.localPagination){
+            this.startPagination(this.filteredCards);
+            this.resetPagination(this.filteredCards.length);
+        } else{
+            this.cards = this.filteredCards;
+        }
+        if ( this.verbose ) {
+            console.log('filteredCards', this.filteredCards);
+            console.log( `After filter applied: ${this.describeFilters()} (${this.visibleCards} visible)` );
+        }
+        if(this.onCardsChanged){
+            this.onCardsChanged();
+        }
+    }
     /**
      *  Applies a textual search filter to all properties/entities in the current list, or clears the current filter if `filterPattern` is null.
      *  This should cause the `visibleItem` count to be recalculated, possibly triggering a load of further pages of data.
      */
     public applyTextFilter( filterPattern:RegExp|null ):boolean {
         this.textFilter = filterPattern;
-        this.loadMore();
+        this.applyFiltersAndSearch();
         return true;
     }
 
@@ -165,7 +211,7 @@ export abstract class AlCardstackView< EntityType=any,
      *  Returning `true` indicates that the current list of items needs to be flushed and data retrieval should start from scratch.
      */
     public applySortBy( descriptor:AlCardstackPropertyDescriptor, order:string = "DESC" ):boolean {
-        this.cards.sort( ( a, b ) => {
+        this.rawCards = this.rawCards.sort( ( a, b ) => {
             let pa = a.properties;
             let pb = b.properties;
             if ( typeof( pa[descriptor.property] ) === 'string' && typeof( pb[descriptor.property] ) === 'string' ) {
@@ -180,6 +226,7 @@ export abstract class AlCardstackView< EntityType=any,
                 throw new Error("Inconsistent property normalization: properties are not string or number, or are mixed." );
             }
         } );
+        this.applyFiltersAndSearch();
         return false;
     }
 
@@ -193,11 +240,6 @@ export abstract class AlCardstackView< EntityType=any,
             this.activeFilters[propertyName] = {};
         }
         this.activeFilters[propertyName][descriptor.valueKey] = descriptor;
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-        if ( this.verbose ) {
-            console.log( `After filter applied: ${this.describeFilters()} (${this.visibleCards} visible)` );
-        }
         return false;
     }
 
@@ -214,10 +256,7 @@ export abstract class AlCardstackView< EntityType=any,
         if ( Object.keys( this.activeFilters[propertyName] ).length === 0 ) {
             delete this.activeFilters[propertyName];
         }
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        if ( this.verbose ) {
-            console.log( `After filter removed: ${this.describeFilters()} (${this.visibleCards} visible)` );
-        }
+
         return false;
     }
 
@@ -249,33 +288,38 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public abstract deriveEntityProperties( entity:EntityType ):PropertyType;
 
+
+    /**
+     *  Optional method to notify when we make changes in the card list
+     *  It call every time the something happend with the list
+     */
+    public onCardsChanged?():void;
+
     /**
      *  Optional method to generate characteristics asynchronously, after constructor has executed.
      */
     public async generateCharacteristics?():Promise<CharacteristicsType>;
 
-    /**
-     *  Refresh view after a change has been applied.
-     */
-    public loadMore() {
+    protected addNextSection(newData: {
+            properties: PropertyType;
+            entity: EntityType;
+            id: string;
+            caption: string;
+        }[]) {
+        this.cards.push( ...newData );
+        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
         this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-        if ( this.visibleCards < 20 && this.remainingPages > 0 ) {
-            this.fetchData( false ).then( batch => {
-                let newData = batch.map( entity => {
-                    const properties = this.deriveEntityProperties( entity );
-                    return {
-                        entity,
-                        properties,
-                        id: properties.id,
-                        caption: properties.caption
-                    };
-                } );
-                this.cards.push( ...newData );
-            } );
+
+        if (this.localPagination) {
+            this.markCardsAsCheck();
         }
     }
-
-    protected ingest( entities:EntityType[] ):number {
+    protected ingest( entities:EntityType[] ): {
+        properties: PropertyType;
+        entity: EntityType;
+        id: string;
+        caption: string;
+    }[]{
         let newData = entities.map( entity => {
             let properties = this.deriveEntityProperties( entity );
             return {
@@ -285,41 +329,78 @@ export abstract class AlCardstackView< EntityType=any,
                 caption: properties.caption
             };
         } );
-        this.cards.push( ...newData );
-        this.cards = this.cards.map( c => this.evaluateCardState( c ) );
-        this.visibleCards = this.cards.reduce( ( count, card ) => count + ( card.visible ? 1 : 0 ), 0 );
-
-        if (this.localPagination) {
-            this.markCardsAsCheck();
-        }
-        return this.visibleCards;
+        return newData;
     }
 
     /**
      *  Method to determine visibility of an individual card item based on the current set of active filters.
      */
-    protected evaluateCardState( card:AlCardstackItem<EntityType,PropertyType> ):AlCardstackItem<EntityType,PropertyType> {
-        card.visible = true;
+    protected evaluateCardVisibilityByFilter( card:AlCardstackItem<EntityType,PropertyType> ):boolean {
         let filterProperties = Object.keys( this.activeFilters );
         if ( filterProperties.length === 0 ) {
-            return card;
+            return true;
         }
-        filterProperties.find( property => {
+        return ! filterProperties.find( property => {
             if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
-                card.visible = false;
-                return true;        //  terminate iteration
+                // visible = false;
+                return true; //  terminate iteration
             }
             let cardPropValue = ( card.properties as any )[property];
             let matched = Object.values( this.activeFilters[property] ).find( valDescriptor => {
-                return valDescriptor.value === cardPropValue ? true : false;
+                if (cardPropValue instanceof Array) {
+                    return cardPropValue.includes(valDescriptor.value);
+                }
+                return valDescriptor.value === cardPropValue.value;
             } );
             if ( ! matched ) {
-                card.visible = false;
-                return true;        //  terminate iteration
+                // visible = false;
+                return true; //  terminate iteration
             }
             return false;
         } );
-        return card;
+    }
+
+    /**
+     *  Method to determine visibility of an individual card item based on the current search text
+     */
+    protected evaluateCardVisibilityBySearch( card:AlCardstackItem<EntityType,PropertyType>, search: RegExp|null):boolean {
+        if (search === null) {
+            return true;
+        }
+
+        let visible = false;
+        if(this.characteristics && this.characteristics.searchableBy) {
+            if (this.characteristics.searchableBy.length === 0 ) {
+                return true;
+            }
+            this.characteristics.searchableBy.find( (property:string) => {
+                if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
+                    return true; //  terminate iteration
+                }
+                let cardPropValue = ( card.properties as any )[property];
+                if (cardPropValue instanceof Array) {
+                    const matches = cardPropValue.find((value) => search.test(value));
+                    if (matches) {
+                        visible = true;
+                        return true;
+                    }
+                } else {
+                    if (search.test(cardPropValue)) {
+                        visible = true;
+                        return true;
+                    }
+                }
+                return true;
+            });
+        }
+        return visible;
+    }
+
+    protected evaluateCardState( card:AlCardstackItem<EntityType,PropertyType> ):AlCardstackItem<EntityType,PropertyType> {
+            card.visible = this.evaluateCardVisibilityBySearch(card, this.textFilter)
+            && this.evaluateCardVisibilityByFilter(card);
+
+            return card;
     }
 
     /**

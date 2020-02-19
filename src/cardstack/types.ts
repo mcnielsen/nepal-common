@@ -89,6 +89,18 @@ export interface AlCardstackCharacteristics
      *  An empty array indicates that filtering is not supported for this cardstack, and the filter panel should not be shown.
      */
     filterableBy: (string|AlCardstackPropertyDescriptor)[];
+    /**
+     * searchableBy is an array with the properties,
+     * take in account the property must by an string or an arrays with strings,
+     * NOTE: complex obj are not supported.
+     * eg properties: {
+     *   name:'Ana victoria',
+     *   favoriteColor:['red','blue'],
+     *   favoriteOther:[{ name:'belen', age:18}] //  not supported
+     * }
+     * eg searchableBy ['name','favoriteColor']
+     */
+    searchableBy?: string[];
 
     /**
      * If provided, indicates that the cards should be grouped into distinct sections based on a given attribute.
