@@ -87,7 +87,9 @@ export abstract class AlCardstackView< EntityType=any,
             console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
         }
         this.loading = false;
-        this.cardsChange();
+        if(this.onCardsChanged){
+            this.onCardsChanged();
+        }
     }
 
     /** set the first page of the filteredCards */
@@ -179,7 +181,9 @@ export abstract class AlCardstackView< EntityType=any,
             console.log('filteredCards', this.filteredCards);
             console.log( `After filter applied: ${this.describeFilters()} (${this.visibleCards} visible)` );
         }
-        this.cardsChange();
+        if(this.onCardsChanged){
+            this.onCardsChanged();
+        }
     }
     /**
      *  Applies a textual search filter to all properties/entities in the current list, or clears the current filter if `filterPattern` is null.
@@ -279,15 +283,17 @@ export abstract class AlCardstackView< EntityType=any,
     public abstract async fetchData( initialLoad:boolean ):Promise<EntityType[]>;
 
     /**
-     *  It call every time the something happend with the list
-     */
-    public abstract cardsChange():void;
-
-    /**
      *  Given an entity instance, allows the deriving class to populate a properties object -- which may be correlated or extracted or mapped as necessary
      *  from other data -- that can be used to sort, filter, group, and segment by.
      */
     public abstract deriveEntityProperties( entity:EntityType ):PropertyType;
+
+
+    /**
+     *  Optional method to notify when we make changes in the card list
+     *  It call every time the something happend with the list
+     */
+    public onCardsChanged?():void;
 
     /**
      *  Optional method to generate characteristics asynchronously, after constructor has executed.
@@ -330,15 +336,14 @@ export abstract class AlCardstackView< EntityType=any,
      *  Method to determine visibility of an individual card item based on the current set of active filters.
      */
     protected evaluateCardVisibilityByFilter( card:AlCardstackItem<EntityType,PropertyType> ):boolean {
-        let visible = true;
         let filterProperties = Object.keys( this.activeFilters );
         if ( filterProperties.length === 0 ) {
             return true;
         }
-        filterProperties.forEach( property => {
+        return ! filterProperties.find( property => {
             if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
-                visible = false;
-                return ;        //  terminate iteration
+                // visible = false;
+                return true; //  terminate iteration
             }
             let cardPropValue = ( card.properties as any )[property];
             let matched = Object.values( this.activeFilters[property] ).find( valDescriptor => {
@@ -348,56 +353,50 @@ export abstract class AlCardstackView< EntityType=any,
                 return valDescriptor.value === cardPropValue.value;
             } );
             if ( ! matched ) {
-                visible = false;
-                return ;        //  terminate iteration
+                // visible = false;
+                return true; //  terminate iteration
             }
-            return ;
+            return false;
         } );
-        return visible;
     }
 
     protected evaluateCardVisibilityBySearch( card:AlCardstackItem<EntityType,PropertyType>, search: RegExp|null):boolean {
-        let visible = false;
         if (search === null) {
             return true;
         }
 
+        let visible = false;
         if(this.characteristics && this.characteristics.searchableBy) {
             if (this.characteristics.searchableBy.length === 0 ) {
                 return true;
             }
-            this.characteristics.searchableBy.forEach( (property:string) => {
+            this.characteristics.searchableBy.find( (property:string) => {
                 if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
-                    return ; //  terminate iteration
+                    return true; //  terminate iteration
                 }
                 let cardPropValue = ( card.properties as any )[property];
                 if (cardPropValue instanceof Array) {
                     const matches = cardPropValue.find((value) => search.test(value));
                     if (matches) {
                         visible = true;
-                        return;
+                        return true;
                     }
                 } else {
                     if (search.test(cardPropValue)) {
                         visible = true;
+                        return true;
                     }
                 }
-                return ;
+                return true;
             });
         }
         return visible;
     }
 
     protected evaluateCardState( card:AlCardstackItem<EntityType,PropertyType> ):AlCardstackItem<EntityType,PropertyType> {
-            card.visible = false;
-            // filter using state active or inactive
-            if (this.evaluateCardVisibilityBySearch(card, this.textFilter)
-                &&
-                this.evaluateCardVisibilityByFilter(card)
-                // maybe && additionEvaluations abstrasct
-                ) {
-                card.visible = true;
-            }
+            card.visible = this.evaluateCardVisibilityBySearch(card, this.textFilter)
+            && this.evaluateCardVisibilityByFilter(card);
+
             return card;
     }
 

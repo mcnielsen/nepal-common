@@ -90,7 +90,15 @@ export interface AlCardstackCharacteristics
      */
     filterableBy: (string|AlCardstackPropertyDescriptor)[];
     /**
-     * search by the following properties, take in account the property must by and string or and arrays with strings complex obj are not supported
+     * searchableBy is an array with the properties,
+     * take in account the property must by an string or an arrays with strings,
+     * NOTE: complex obj are not supported.
+     * eg properties: {
+     *   name:'Ana victoria',
+     *   favoriteColor:['red','blue'],
+     *   favoriteOther:[{ name:'belen', age:18}] //  not supported
+     * }
+     * eg searchableBy ['name','favoriteColor']
      */
     searchableBy?: string[];
 
