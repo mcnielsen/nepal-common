@@ -53,6 +53,14 @@ export class AlStopwatch
         return watch;
     }
 
+    public static promise( interval:number ): Promise<void> {
+        return new Promise( ( resolve ) => {
+            AlStopwatch.once( () => {
+                resolve();
+            }, interval );
+        } );
+    }
+
     /**
      *  The timer's tick handler; executes the callback and, for single-fire timers, clears the timer handle.
      */
