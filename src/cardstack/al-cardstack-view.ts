@@ -375,7 +375,7 @@ export abstract class AlCardstackView< EntityType=any,
             }
             this.characteristics.searchableBy.find( (property:string) => {
                 if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
-                    return true; //  terminate iteration
+                    return false; //  terminate iteration
                 }
                 let cardPropValue = ( card.properties as any )[property];
                 if (cardPropValue instanceof Array) {
@@ -390,7 +390,7 @@ export abstract class AlCardstackView< EntityType=any,
                         return true;
                     }
                 }
-                return true;
+                return false;
             });
         }
         return visible;
