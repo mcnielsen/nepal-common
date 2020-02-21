@@ -532,7 +532,7 @@ export class AlRoute {
      * Determines whether a path pattern matches the current URL
      */
     evaluatePathMatch( pathMatches:string ) {
-        let pattern = "^.*" + pathMatches.replace(/[{}()|[\]\\\/]/g, '\\$&') + "$";
+        let pattern = "^.*" + pathMatches.replace(/[{}|[\]\\\/]/g, '\\$&') + "$";
         let comparison = new RegExp( pattern );
         return comparison.test( this.host.currentUrl );
     }
