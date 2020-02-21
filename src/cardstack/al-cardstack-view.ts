@@ -373,25 +373,41 @@ export abstract class AlCardstackView< EntityType=any,
             if (this.characteristics.searchableBy.length === 0 ) {
                 return true;
             }
-            this.characteristics.searchableBy.find( (property:string) => {
-                if ( ! card.properties.hasOwnProperty( property ) || typeof( ( card.properties as any)[property] ) === 'undefined' ) {
-                    return false; //  terminate iteration
+            if(search.source.indexOf("=") !== -1){
+                const lsSource = search.source.split("=");
+                const property = lsSource[0];
+                const value = lsSource[1].toLowerCase();
+                if(property === '' || value === ''){
+                    return false;
                 }
-                let cardPropValue = ( card.properties as any )[property];
-                if (cardPropValue instanceof Array) {
-                    const matches = cardPropValue.find((value) => search.test(value));
-                    if (matches) {
-                        visible = true;
-                        return true;
-                    }
-                } else {
-                    if (search.test(cardPropValue)) {
-                        visible = true;
-                        return true;
-                    }
+                if(!card.properties.hasOwnProperty(property)){
+                    return false;
                 }
-                return false;
-            });
+                const cardPropValue = ( card.properties as any )[property].toLowerCase();
+                if (value.indexOf(cardPropValue) !== -1) {
+                    return true;
+                }
+            }else{
+                this.characteristics.searchableBy.find( (property:string) => {
+                    if ( ! card.properties.hasOwnProperty( property ) || !( card.properties as any)[property]) {
+                        return true; // terminate iteration
+                    }
+                    let cardPropValue = ( card.properties as any )[property];
+                    if (cardPropValue instanceof Array) {
+                        const matches = cardPropValue.find((value) => search.test(value));
+                        if (matches) {
+                            visible = true;
+                            return true;
+                        }
+                    } else {
+                        if (search.test(cardPropValue)) {
+                            visible = true;
+                            return true;
+                        }
+                    }
+                    return true;
+                });
+            }
         }
         return visible;
     }
