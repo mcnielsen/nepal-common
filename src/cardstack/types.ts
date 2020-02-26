@@ -33,7 +33,10 @@ export interface AlCardstackValueDescriptor
     default?:boolean;           //  Should the filter be selected by default?
 
     // If the value has an aggregate count
-    count ?: number;
+    count?:number;
+
+    // Define the type of the descriptor
+    type?:string;
 }
 
 /**
