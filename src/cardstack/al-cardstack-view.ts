@@ -215,7 +215,11 @@ export abstract class AlCardstackView< EntityType=any,
             let pa = a.properties;
             let pb = b.properties;
             if ( typeof( pa[descriptor.property] ) === 'string' && typeof( pb[descriptor.property] ) === 'string' ) {
-                return pa[descriptor.property].localeCompare( pb[descriptor.property] );
+                if ( order === 'ASC' ) {
+                    return pa[descriptor.property].localeCompare( pb[descriptor.property] );
+                } else {
+                    return pb[descriptor.property].localeCompare( pa[descriptor.property] );
+                }
             } else if ( typeof( pa[descriptor.property] ) === 'number' && typeof( pb[descriptor.property] ) === 'number' ) {
                 if ( order === 'ASC' ) {
                     return pa[descriptor.property] - pb[descriptor.property];
