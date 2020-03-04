@@ -409,7 +409,7 @@ export abstract class AlCardstackView< EntityType=any,
                             return true;
                         }
                     }
-                    return true;
+                    return false;
                 });
             }
         }
