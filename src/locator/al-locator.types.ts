@@ -152,6 +152,7 @@ export interface AlLocationDescriptor
     locTypeId:string;               //  This should correspond to one of the ALLocation string constants, e.g., AlLocation.AccountsUI or AlLocation.GlobalAPI.
     insightLocationId?:string;      //  The location ID as defined by the global locations service -- e.g., 'defender-us-ashburn' or 'insight-eu-ireland'.
     uri:string;                     //  URI of the entity
+    originalUri?:string;            // for after remapping, needed for linking
     residency?:string;              //  A data residency domain
     environment?:string;            //  'production, 'integration', 'development'...
     aliases?:string[];              //  A list of
@@ -322,6 +323,7 @@ export class AlLocatorMatrix
                     result = hit.location;
                     const baseUrl = this.getBaseUrl( targetURI );
                     if ( baseUrl !== result.uri ) {
+                        result.originalUri = result.uri;
                         result.uri = baseUrl;
                     }
                     return true;
@@ -404,6 +406,7 @@ export class AlLocatorMatrix
     public remapLocationToURI( locTypeId:string, uri:string, environment?:string, residency?:string ) {
         this.nodeCache = {};    //  flush lookup cache
         const remap = ( node:AlLocationDescriptor ) => {
+            node.originalUri = node.uri;
             node.uri = uri;
             node.environment = environment || node.environment;
             node.residency = residency || node.residency;
