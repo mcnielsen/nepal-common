@@ -394,7 +394,7 @@ export abstract class AlCardstackView< EntityType=any,
             }else{
                 this.characteristics.searchableBy.find( (property:string) => {
                     if ( ! card.properties.hasOwnProperty( property ) || !( card.properties as any)[property]) {
-                        return true; // terminate iteration
+                        return false; // terminate iteration
                     }
                     let cardPropValue = ( card.properties as any )[property];
                     if (cardPropValue instanceof Array) {
