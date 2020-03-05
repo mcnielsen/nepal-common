@@ -354,7 +354,7 @@ export abstract class AlCardstackView< EntityType=any,
                 if (cardPropValue instanceof Array) {
                     return cardPropValue.includes(valDescriptor.value);
                 }
-                return valDescriptor.value === cardPropValue.value;
+                return valDescriptor.value === cardPropValue;
             } );
             if ( ! matched ) {
                 // visible = false;
