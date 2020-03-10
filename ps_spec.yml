@@ -29,7 +29,7 @@ stages:
         compute_size: small
         commands:
             - npm install
-            - echo //registry.npmjs.org/:_authToken=${NPM_TOKEN} > .npmrc
+            - echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
             - npm whoami
             - if [ npm view $(node -e 'console.log(require("./package.json").name)')@$(node -e 'console.log(require("./package.json").version)') | wc -c) -eq 0 ]; then
                 npm publish --access public
