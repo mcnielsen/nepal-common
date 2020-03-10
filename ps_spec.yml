@@ -31,7 +31,10 @@ stages:
             - npm install
             - echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
             - npm whoami
-            - if [ npm view $(node -e 'console.log(require("./package.json").name)')@$(node -e 'console.log(require("./package.json").version)') | wc -c) -eq 0 ]; then
-                npm publish --access public
+            - PKGNAME=$(node -e 'console.log(require("./package.json").name)')
+              PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
+              WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
+              if [ "$WORDCOUNT" -eq 0  ]; then
+                 npm publish --access public
               fi
             - echo done
