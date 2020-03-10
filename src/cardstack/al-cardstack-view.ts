@@ -19,11 +19,16 @@ export abstract class AlCardstackView< EntityType=any,
     public loading:boolean                                                      =   false;      //  Indicates whether or not the view is currently loading
     public verbose:boolean                                                      =   false;      //  Print (maybe) useful console output for debugging purposes
 
+    // pagination common values
+    public itemsPerPage:number                                                  =  50;           // items per page default value
+
+    // pagination remote values
+    public continuation: string| undefined                                      = undefined;    // continuation for remote pagination
+
     // pagination values
     public loadedPages:number                                                   =   0;          //  Number of pages currently retrieved
     public remainingPages:number                                                =   1;          //  Number of pages of data remaining (or 1, if unknown); 0 when load is complete/EOS
     public localPagination: boolean                                             =  false;        // If we are going to use local pagination the remainingPages and loadedPages are going to be reseted in every filter or search
-    public itemsPerPage:number                                                  =  50;           // items per page default value
     public rawCards:AlCardstackItem<EntityType>[] = [];         //  All cards loaded,is going to be used to make local pagination
     public filteredCards:AlCardstackItem<EntityType>[] = [];
 
@@ -244,6 +249,8 @@ export abstract class AlCardstackView< EntityType=any,
             this.activeFilters[propertyName] = {};
         }
         this.activeFilters[propertyName][descriptor.valueKey] = descriptor;
+        this.continuation = undefined;
+
         return false;
     }
 
@@ -260,6 +267,7 @@ export abstract class AlCardstackView< EntityType=any,
         if ( Object.keys( this.activeFilters[propertyName] ).length === 0 ) {
             delete this.activeFilters[propertyName];
         }
+        this.continuation = undefined;
 
         return false;
     }
