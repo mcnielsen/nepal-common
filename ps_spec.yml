@@ -1,0 +1,37 @@
+version: 1.0
+service_name: nepal-common
+
+stages:
+    -
+        name: PR Test
+        when:
+            - pull_request
+        input:
+            repo: alertlogic/nepal-common
+        image: node:13
+        compute_size: small
+        commands:
+            - npm install
+#            - npm install puppeteer
+#            - export CHROME_BIN=$(node -e "console.log(require('puppeteer').executablePath())")
+#            - npm run test
+            - npm run lint
+            - npm run build
+            - npx madge --circular --extensions ts --ts-config tsconfig.json src
+
+    -
+        name: Master Push - Publish
+        when:
+            - push: ['master']
+        input:
+            repo: alertlogic/nepal-common
+        image: node:13
+        compute_size: small
+        commands:
+            - npm install
+            - echo //registry.npmjs.org/:_authToken=${NPM_TOKEN} > .npmrc
+            - npm whoami
+            - if [ npm view $(node -e 'console.log(require("./package.json").name)')@$(node -e 'console.log(require("./package.json").version)') | wc -c) -eq 0 ]; then
+                npm publish --access public
+              fi
+            - echo done
