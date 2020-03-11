@@ -37,6 +37,7 @@ stages:
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
               if [ "$WORDCOUNT" -eq 0  ]; then
                  echo "PUBLISHING $PKGNAME $PKGVERSION"
+                 npm run build
                  npm publish --access public
               else
                  echo "NOT PUBLISHING $PKGNAME $PKGVERSION"
