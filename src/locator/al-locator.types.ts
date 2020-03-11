@@ -457,8 +457,14 @@ export class AlLocatorMatrix
                     residency: this.actor.residency || this.context.residency
                 } );
             } else {
+                let environment = "production";
+                if ( actingUri.startsWith("http://localhost" ) ) {
+                    environment = "development";
+                } else if ( actingUri.includes("product.dev.alertlogic.com") ) {
+                    environment = "integration";
+                }
                 this.setContext( {
-                    environment:        "production",
+                    environment,
                     residency:          "US",
                     insightLocationId:  undefined,
                     accessible:         undefined

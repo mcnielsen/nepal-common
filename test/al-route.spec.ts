@@ -4,6 +4,36 @@ import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorService }
 import { AlRoutingHost, AlRouteCondition, AlRouteAction, AlRouteDefinition, AlRoute } from '../src/locator';
 import * as sinon from 'sinon';
 
+export class MockRoutingHost implements AlRoutingHost {
+    currentUrl = "https://console.overview.alertlogic.com/#/remediations-scan-status/2";
+    routeParameters = {};
+
+    constructor( public entitlements:{[entitlement:string]:boolean} = {} ) {
+    }
+
+    dispatch = ( route:AlRoute ) => true;
+    evaluate( condition:AlRouteCondition ):boolean|boolean[] {
+        let results:boolean[] = [];
+        if ( condition.entitlements ) {
+            let entitlements = typeof( condition.entitlements ) === 'string' ? [ condition.entitlements ] : condition.entitlements;
+            entitlements.forEach( entitlement => {
+                results.push( this.entitlements.hasOwnProperty( entitlement ) && this.entitlements[entitlement] );
+            } );
+        }
+        if ( condition.environments ) {
+            const environment = AlLocatorService.getContext().environment;
+            results.push( condition.environments.includes( environment ) );
+        }
+        return results;
+    }
+
+    setRouteParameter(parameter:string, value:string) {}
+    getConditionById = (conditionId:string) => null;
+    deleteRouteParameter(parameter:string) {}
+    setBookmark(id:string, route:AlRoute ) {}
+    getBookmark = (id:string):AlRoute => null;
+}
+
 describe( 'AlRoute', () => {
 
     const fakeEntitlements = {
@@ -12,32 +42,11 @@ describe( 'AlRoute', () => {
         'c': true,
         'd': false
     };
-    let routingHost = {
-        currentUrl: "https://console.overview.alertlogic.com/#/remediations-scan-status/2",
-        dispatch: ( route:AlRoute ) => {
-            return true;
-        },
-        evaluate: ( condition:AlRouteCondition ) => {
-            if ( condition.entitlements ) {
-                if ( fakeEntitlements.hasOwnProperty( condition.entitlements ) ) {
-                    return fakeEntitlements[condition.entitlements];
-                }
-            }
-            return false;
-        },
-        routeParameters: {},
-        setRouteParameter: (parameter:string, value:string) => {
-        },
-        deleteRouteParameter: (parameter:string) => {
-        },
-        setBookmark: (id:string, route:AlRoute ) => {
-        },
-        getBookmark: (id:string):AlRoute => {
-            return null;
-        }
-    };
+
+    let routingHost = new MockRoutingHost( fakeEntitlements );
 
     beforeEach( () => {
+        AlLocatorService.setActingUri("https://console.overview.alertlogic.com" );
         routingHost.routeParameters["accountId"] = "2";
         routingHost.routeParameters["deploymentId"] = "1234ABCD-1234-ABCD1234";
     } );
@@ -260,7 +269,7 @@ describe( 'AlRoute', () => {
         const child1:AlRouteDefinition = {
             caption: "Child 1",
             visible: {
-                entitlements: 'a'
+                entitlements: [ 'a' ]
             },
             action: {
                 type: "link",
@@ -274,8 +283,8 @@ describe( 'AlRoute', () => {
             visible: {
                 rule: 'none',
                 conditions: [
-                    { entitlements: 'b' },
-                    { entitlements: 'd' }
+                    { entitlements: [ 'b' ] },
+                    { entitlements: [ 'd' ] }
                 ]
             },
             action: {
@@ -291,9 +300,9 @@ describe( 'AlRoute', () => {
             visible: {
                 rule: 'all',
                 conditions: [
-                    { entitlements: 'a' },
-                    { entitlements: 'c' },
-                    { entitlements: 'd' }           /* this is false */
+                    { entitlements: [ 'a' ] },
+                    { entitlements: [ 'c' ] },
+                    { entitlements: [ 'd' ] }           /* this is false */
                 ]
             },
             action: {
@@ -438,7 +447,7 @@ describe( 'AlRoute', () => {
 
             expect( route.visible ).to.equal( true );
 
-            route.definition.visible.path_matches = "/something-else.*";
+            ( route.definition.visible as AlRouteCondition ).path_matches = "/something-else.*";
             route.refresh( true );
             expect( route.visible ).to.equal( false );
         } );
@@ -502,7 +511,7 @@ describe( 'AlRoute', () => {
                     rule: 'all',
                     parameters: [ "accountId", "deploymentId" ],
                     path_matches: '/#/special/feature/path.*',
-                    entitlements: 'super_secret_feature'
+                    entitlements: [ 'super_secret_feature' ]
                 }
             } );
 
@@ -523,7 +532,7 @@ describe( 'AlRoute', () => {
                     rule: 'none',
                     parameters: [ "accountId", "jabberwocky" ],     //  <-- accountId is defined, so the routes visibility should initially be `false`
                     path_matches: '/#/some/path/i/am/not/on',
-                    entitlements: 'some_undefined_entitlement'
+                    entitlements: [ 'some_undefined_entitlement' ]
                 }
             } );
 

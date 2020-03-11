@@ -126,8 +126,7 @@ describe( 'AlLocatorMatrix', () => {
             expect( locator['actingUri'] ).to.equal( undefined );
             expect( locator['actor'] ).to.equal( undefined );
 
-            //  Context inferred from default URL, which won't be recognized
-            locator.setActingUri( true );
+            locator.setActingUri( "https://console.overview.alertlogic.com" );
             let actor = locator.getActingNode();
             let context = locator.getContext();
             expect( context.environment ).to.equal( "production" );
