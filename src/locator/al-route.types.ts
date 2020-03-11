@@ -28,6 +28,9 @@ export interface AlRoutingHost
     /* Named routes - actions that can be reused by multiple menu items or invoked imperatively from code */
     getRouteByName?( routeName:string ):AlRouteDefinition;
 
+    /* Shared conditions */
+    getConditionById( conditionId:string ):AlRouteCondition|boolean;
+
     /* Link decoration - allows manipulation of `href` properties for link menu items. */
     decorateHref?( route:AlRoute ):void;
 
@@ -38,8 +41,8 @@ export interface AlRoutingHost
     /* Asks the host to execute a given route's action. */
     dispatch(route:AlRoute, params?:{[param:string]:string}):void;
 
-    /* Asks the host to evaluate whether a given routing condition is true or false */
-    evaluate(condition:AlRouteCondition):boolean;
+    /* Asks the host to evaluate various types of environmental conditions */
+    evaluate( condition:AlRouteCondition ):boolean|boolean[];
 }
 
 /**
@@ -66,8 +69,13 @@ export const AlNullRoutingHost = {
     getBookmark: ( bookmarkId:string ) => {
         return AlNullRoutingHost.bookmarks[bookmarkId];
     },
+    getConditionById: ( conditionId:string ) => {
+        return conditionId ? false : false; /* bah */
+    },
     dispatch: () => {},
-    evaluate: () => false
+    evaluate: ( condition:AlRouteCondition ) => {
+        return condition ? false : false;
+    }
 };
 
 /**
@@ -77,12 +85,21 @@ export const AlNullRoutingHost = {
  */
 export interface AlRouteCondition
 {
-    rule?:"any"|"all"|"none";           //  must be "any", "all", or "none"
-    conditions?:AlRouteCondition[];     //  An array of child conditions to evaluate using the indicated rule
-    entitlements?:string;               //  An entitlement expression to evaluate
-    path_matches?:string;               //  Path matches a given regular expression
-    parameters?:string[];               //  An array of route parameters that must be present, or parameter equivalence tests that must be true
-    environments?:string[];             //  An array of environments to match against (e.g., "integration", "development", "production", etc.
+    conditionId?:string;                    //  If the condition is a shared condition, this is the ID/hash used to identify it
+    rule?:"any"|"all"|"none";               //  must be "any", "all", or "none"
+    conditions?:AlRouteCondition[];         //  An array of child conditions to evaluate using the indicated rule
+
+    //  The following five conditions -- entitlements, primaryEntitlements, environments, experiences, and authentication -- are environmental
+    //  conditions that the routing layer will ask the
+    authentication?:boolean;                //  If specified, indicates whether the menu item should only appear if authenticated (true) or unauthenticated (false)
+    entitlements?:string[];                 //  An array of entitlement expressions to evaluate against the acting account's entitlements
+    primaryEntitlements?:string[];          //  An array of entitlement expressions to evaluate against the primary account's entitlements
+    environments?:string[];                 //  An array of environments to match against (e.g., "integration", "development", "production", etc.
+    experiences?:string[];                  //  An array of navigation experiences to match against (e.g., "beta", "default", "delta", "omega-123")
+    query?:any;                             //  If provided, the query must be a valid search_lib style filter expression.  This filter will be applied to the current navigation state.
+
+    path_matches?:string;                   //  Path matches a given regular expression
+    parameters?:string[];                   //  An array of route parameters that must be present, or parameter equivalence tests that must be true
 }
 
 /**
@@ -138,8 +155,9 @@ export interface AlRouteDefinition {
      * If the provided value is a string, it will be treated as a reference to a named route in the current schema. */
     action?:AlRouteAction|string;
 
-    /* A condition that can be evaluated to calculate the `visible` property at any given moment */
-    visible?:AlRouteCondition;
+    /* A condition that can be evaluated to calculate the `visible` property at any given moment.
+     * This can be a fixed boolean value, a shared condition ID (see AlNavigationSchema.conditions), or a condition literal. */
+    visible?:AlRouteCondition|string|boolean;
 
     /* Does is match patterns other than its canonical href?  If so, list of patterns relative to the action's site (only applies to action.type == link) */
     matches?:string[];
@@ -480,9 +498,15 @@ export class AlRoute {
      *      d) entitlements or other externally calculated conditions
      *  And then uses a simple reducer to roll up all results based on the condition rule, which defaults to 'all'.
      */
-    evaluateCondition( condition:AlRouteCondition|boolean ):boolean {
+    evaluateCondition( condition:AlRouteCondition|string|boolean ):boolean {
+        if ( typeof( condition ) === 'string' ) {
+            condition = this.host.getConditionById( condition );
+        }
         if ( typeof( condition ) === 'boolean' ) {
             return condition;
+        }
+        if ( typeof( condition ) !== 'object' || condition === null ) {
+            return false;
         }
 
         let evaluations:boolean[] = [];
@@ -497,12 +521,14 @@ export class AlRoute {
             //  Evaluates true only if the current path matches a given regular expression
             evaluations.push( this.evaluatePathMatch( condition.path_matches ) );
         }
-        if ( condition.entitlements ) {
+        if ( condition.query || condition.authentication || condition.entitlements || condition.primaryEntitlements || condition.environments || condition.experiences ) {
             //  This condition refers to entitlement or other externally managed data -- ask the host to evaluate it.
-            evaluations.push( this.host.evaluate( condition ) );
-        }
-        if ( condition.environments ) {
-            evaluations.push( condition.environments.includes( AlLocatorService.getContext().environment || "undefined" ) );
+            let externals = this.host.evaluate( condition );
+            if ( typeof( externals ) === 'boolean' ) {
+                evaluations.push( externals );
+            } else if ( typeof( externals ) === 'object' && externals.hasOwnProperty("length") ) {
+                evaluations = evaluations.concat( externals );
+            }
         }
         if ( condition.rule === 'none' ) {
             return ! evaluations.some( value => value );        //  no items are true
@@ -653,4 +679,5 @@ export interface AlNavigationSchema
     description: string;
     menus: {[menuId:string]:AlRouteDefinition};
     namedRoutes: {[routeName:string]:AlRouteDefinition};
+    conditions: {[conditionId:string]:AlRouteCondition};
 }
