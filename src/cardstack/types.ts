@@ -37,6 +37,9 @@ export interface AlCardstackValueDescriptor
 
     // Define the type of the descriptor
     type?:string;
+
+    // Arbitrary metadata, such as icon class or entitlement limitations
+    metadata?:{[property:string]:unknown};
 }
 
 /**
