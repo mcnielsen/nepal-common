@@ -131,6 +131,19 @@ export class AlUnimplementedMethodError extends AlBaseError
 /**
  * @public
  *
+ * Used to indicate that an upstream service has failed to complete a request in the expected fashion.
+ */
+export class AlBadGatewayError extends AlBaseError
+{
+    public httpResponseCode:number = 502;
+    constructor( message:string, upstreamService:string, requestDescriptor:unknown ) {
+        super(message);
+    }
+}
+
+/**
+ * @public
+ *
  * Used to indicate that a resource does not exist.
  *
  * @param message - A general description of the error and error context.
