@@ -136,7 +136,8 @@ export class AlUnimplementedMethodError extends AlBaseError
 export class AlBadGatewayError extends AlBaseError
 {
     public httpResponseCode:number = 502;
-    constructor( message:string, upstreamService:string, requestDescriptor:unknown ) {
+    /* tslint:disable:no-unused-variable */
+    constructor( message:string, public upstreamService:string, public requestDescriptor:unknown ) {
         super(message);
     }
 }
