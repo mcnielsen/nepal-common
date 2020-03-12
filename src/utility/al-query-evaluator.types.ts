@@ -11,12 +11,52 @@ export interface AlQuerySubject {
     getPropertyValue( property:string, ns:string ):any;
 }
 
+type BaseValue = string | number | boolean | null | undefined;
+type Descriptor = { source: string | { ns: string; id: string; } };
+type OpCompare = [Descriptor, BaseValue];
+type OpCompareNum = [Descriptor, number];
+
+type BaseOp =
+    OpAnd
+    | OpOr
+    | OpEqual
+    | OpNotEqual
+    | OpLessThan
+    | OpLessThanEqual
+    | OpGreaterThan
+    | OpGreaterThanEqual
+    | OpIn
+    | OpNotIn
+    | OpIsNull
+    | OpContains
+    | OpContainsAny
+    | OpContainsAll;
+
+type BaseOps = BaseOp[];
+
+type OpAnd = { and: BaseOps };
+
+type OpOr = { or: BaseOps };
+
+type OpEqual = { '=': OpCompare } ;
+type OpNotEqual = { '!=': OpCompare } ;
+type OpLessThan = { '<': OpCompareNum } ;
+type OpLessThanEqual = { '<=': OpCompareNum } ;
+type OpGreaterThan = { '>': OpCompareNum } ;
+type OpGreaterThanEqual = { '>=': OpCompareNum } ;
+type OpIn = { 'in': [OpCompare, BaseValue] } ;
+type OpNotIn = { 'not': BaseOp } ;
+type OpIsNull = { 'isnull': [Descriptor] } ;
+type OpContains = { 'contains': [OpCompare, BaseValue] } ;
+type OpContainsAny = { 'contains_any': [Descriptor, any] } ;
+type OpContainsAll = { 'contains_all': [Descriptor, any] };
+
 export class AlQueryEvaluator
 {
-    constructor( public queryDescriptor:any, public id?:string ) {
+    constructor( public queryDescriptor:BaseOp, public id?:string ) {
     }
 
-    public test( subject:AlQuerySubject, queryDescriptor?:any ):boolean {
+    public test( subject:AlQuerySubject, queryDescriptor?:BaseOp ):boolean {
         return this.dispatchOperator( queryDescriptor || this.queryDescriptor, subject );
     }
 
@@ -25,11 +65,11 @@ export class AlQueryEvaluator
      *  The evaluative functionality of SQXSearchQuery doesn't necessarily encompass the full range of operators supported by log search.
      */
 
-    protected dispatchOperator( op:any, subject:AlQuerySubject ):boolean {
+    protected dispatchOperator( op:BaseOp, subject:AlQuerySubject ):boolean {
         const operatorKeys = Object.keys( op );
         this.assert( op, operatorKeys.length === 1, "an operator descriptor should have a single key." );
-        const operatorKey = operatorKeys[0];
-        const operatorValue = op[operatorKey];
+        const operatorKey = operatorKeys[0] as keyof BaseOp;
+        const operatorValue: any = op[operatorKey];
         switch( operatorKey ) {
             case "and" :
                 return this.evaluateAnd( operatorValue, subject );
@@ -64,158 +104,151 @@ export class AlQueryEvaluator
         }
     }
 
-    protected evaluateAnd( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length > 0, "`and` descriptor should consist of an array of non-zero length" );
-        let result = true;
-        for ( let i = 0; i < op.length; i++ ) {
-            result = result && this.dispatchOperator( op[i], subject );
-        }
-        return result;
+    protected evaluateAnd( op:BaseOps, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length > 0, "`and` descriptor should consist of an array of non-zero length" );
+        return op.every( i =>  this.dispatchOperator( i, subject ) );
+
     }
 
-    protected evaluateOr( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length > 0, "`and` descriptor should consist of an array of non-zero length" );
-        let result = false;
-        for ( let i = 0; i < op.length; i++ ) {
-            result = result || this.dispatchOperator( op[i], subject );
-        }
-        return result;
+    protected evaluateOr( op:BaseOps, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length > 0, "`and` descriptor should consist of an array of non-zero length" );
+        return op.some(i => this.dispatchOperator(i,  subject));
     }
 
-    protected evaluateEquals( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`=` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateEquals( op:OpCompare, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`=` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue === testValue;
     }
 
-    protected evaluateNotEquals( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`!=` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateNotEquals( op:OpCompare, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`!=` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue !== testValue;
     }
 
-    protected evaluateLT( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`<` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateLT( op:OpCompareNum, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`<` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue < testValue;
     }
 
-    protected evaluateLTE( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`<=` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateLTE( op:OpCompareNum, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`<=` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue <= testValue;
     }
 
-    protected evaluateGT( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`>` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateGT( op:OpCompareNum, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`>` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue > testValue;
     }
 
-    protected evaluateGTE( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`>=` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValue = op[1];
+    protected evaluateGTE( op:OpCompareNum, subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`>=` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValue = op[1];
 
         return actualValue >= testValue;
     }
 
-    protected evaluateIn( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`in` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
-        let testValues = op[1];
-        this.assert( testValues, testValues.hasOwnProperty("length"), "`in` values clause must be an array" );
+    protected evaluateIn( op:[Descriptor,unknown[]], subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`in` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
+        const testValues = op[1];
+        this.assert( testValues, Array.isArray(testValues), "`in` values clause must be an array" );
         return testValues.includes( actualValue );
     }
 
-    protected evaluateNot( op:any, subject:AlQuerySubject ):boolean {
-        return ! this.dispatchOperator( op, subject );
+    protected evaluateNot( op:BaseOp, subject:AlQuerySubject ):boolean {
+        return !this.dispatchOperator( op, subject );
     }
 
-    protected evaluateIsNull( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 1, "`isnull` descriptor should have one element" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValue = subject.getPropertyValue( property.id, property.ns );
+    protected evaluateIsNull( op:[Descriptor], subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 1, "`isnull` descriptor should have one element" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValue = subject.getPropertyValue( property.id, property.ns );
         console.log("Actual value: ", actualValue );
         return ( actualValue === null || actualValue === undefined );
     }
 
-    protected evaluateContains( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`contains` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValues = subject.getPropertyValue( property.id, property.ns );
+    protected evaluateContains( op:[Descriptor, any], subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`contains` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValues = subject.getPropertyValue( property.id, property.ns );
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains` operator must reference a property that is an object or an array" );
-        let testValue = op[1];
+        const testValue = op[1];
         return actualValues.includes( testValue );
     }
 
-    protected evaluateContainsAny( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`contains_any` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValues = subject.getPropertyValue( property.id, property.ns );
+    protected evaluateContainsAny( op:[Descriptor, any[]], subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`contains_any` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValues = subject.getPropertyValue( property.id, property.ns );
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains_any` operator must reference a property that is an object or an array" );
-        let testValues = op[1];
-        this.assert( testValues, testValues.hasOwnProperty("length"), "`contains_any` values clause must be an array" );
-        return testValues.reduce( ( alpha:boolean, value:any ) => {
-            if ( actualValues instanceof Array ) {
-                return alpha || actualValues.includes( value );
+        const testValues = op[1];
+        this.assert( testValues, Array.isArray(testValues), "`contains_any` values clause must be an array" );
+        return testValues.some( value  => {
+            if ( Array.isArray(actualValues)) {
+                return actualValues.includes( value );
             } else {
-                return alpha || ( actualValues.hasOwnProperty( value ) && !! actualValues[value] );
+                return actualValues.hasOwnProperty( value ) && !!actualValues[value];
             }
-        }, false );
+        });
     }
 
-    protected evaluateContainsAll( op:any, subject:AlQuerySubject ):boolean {
-        this.assert( op, op.hasOwnProperty("length") && op.length === 2, "`contains_all` descriptor should have two elements" );
-        let property = this.normalizeProperty( op[0] );
-        let actualValues = subject.getPropertyValue( property.id, property.ns );
+    protected evaluateContainsAll( op:[Descriptor,any[]], subject:AlQuerySubject ):boolean {
+        this.assert( op, Array.isArray(op) && op.length === 2, "`contains_all` descriptor should have two elements" );
+        const property = this.normalizeProperty( op[0] );
+        const actualValues = subject.getPropertyValue( property.id, property.ns );
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains_all` operator must reference a property that is an object or an array" );
-        let testValues = op[1];
-        this.assert( testValues, testValues.hasOwnProperty("length"), "`contains_all` values clause must be an array" );
-        return testValues.reduce( ( alpha:boolean, value:any ) => {
-            if ( actualValues instanceof Array ) {
-                return alpha && actualValues.includes( value );
+        const testValues = op[1];
+        this.assert( testValues, Array.isArray(testValues), "`contains_all` values clause must be an array" );
+        return testValues.every(value =>{
+            if ( Array.isArray(actualValues) ) {
+                return actualValues.includes( value );
             } else {
-                return alpha && ( actualValues.hasOwnProperty( value ) && !! actualValues[value] );
+                return actualValues.hasOwnProperty( value ) && !!actualValues[value];
             }
-        }, true );
+        });
     }
 
-    protected normalizeProperty( descriptor:any ):{ns:string,id:string} {
+    protected normalizeProperty( descriptor:Descriptor ):{ns:string,id:string} {
         this.assert( descriptor, descriptor.hasOwnProperty("source"), "property reference must include a `source` property" );
-        let propertyRef = descriptor.source;
+        const propertyRef = descriptor.source;
         let propertyName;
         let propertyNs = "default";
-        if ( typeof( propertyRef ) === 'object' && propertyRef.hasOwnProperty("ns") && propertyRef.hasOwnProperty("id") ) {
+        if ( typeof propertyRef === 'object' && propertyRef.hasOwnProperty("ns") && propertyRef.hasOwnProperty("id") ) {
             propertyNs = propertyRef.ns;
             propertyName = propertyRef.id;
         } else if ( typeof( propertyRef ) === 'string' ) {
             propertyName = propertyRef;
         } else {
-            throw new Error(`Invalid property reference [${JSON.stringify(descriptor[0].source)}] in condition descriptor` );
+            throw new Error(`Invalid property reference [${JSON.stringify(descriptor)}] in condition descriptor` );
         }
         return { ns: propertyNs, id: propertyName };
     }
 
-    protected assert( subject:any, value:boolean, message:string ) {
-        if ( ! value ) {
+    protected assert( subject:unknown, value:boolean, message:string ) {
+        if ( !value ) {
             console.warn("Invalid conditional element", subject );
             throw new Error( `Failed to interpret condition descriptor: ${message}` );
         }
