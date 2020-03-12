@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { describe, before } from 'mocha';
+import { describe } from 'mocha';
 import * as sinon from 'sinon';
 import { AlQuerySubject, AlQueryEvaluator } from '../src/utility';
 
@@ -20,7 +20,7 @@ class MockQueryable implements AlQuerySubject
         if ( propertyPath.length === 0 ) {
             return null;
         }
-        const property = propertyPath.shift();
+        const property = propertyPath.shift() as string;
         if ( ! cursor.hasOwnProperty( property ) ) {
             return null;
         }
@@ -50,10 +50,120 @@ describe( `AlQueryEvaluator`, () => {
     } );
     describe( 'test', () => {
         it( 'should evaluate basic queries properly', () => {
-            let query = new AlQueryEvaluator( {"and":[{"and":[{"and":[{"and":[{"and":[{"and":[{"=":[{"source":"a"},true]},{"=":[{"source":"b"},1]}]},{"=":[{"source":"c"},"textValue"]}]},{"contains_any":[{"source":"d"},["red","yellow","brown"]]}]},{"contains_all":[{"source":"d"},["red","green","blue"]]}]},{"isnull":[{"source":"e"}]}]},{"=":[{"source":"e"},null]}]} );
+            let query = new AlQueryEvaluator({
+                "and": [
+                    {
+                        "and": [
+                            {
+                                "and": [
+                                    {
+                                        "and": [
+                                            {
+                                                "and": [
+                                                    {
+                                                        "and": [
+                                                            {
+                                                                "=": [
+                                                                    { "source": "a" },
+                                                                    true
+                                                                ]
+                                                            },
+                                                            {
+                                                                "=": [
+                                                                    { "source": "b" },
+                                                                    1
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "=": [
+                                                            { "source": "c" },
+                                                            "textValue"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "contains_any": [
+                                                    { "source": "d" },
+                                                    [
+                                                        "red",
+                                                        "yellow",
+                                                        "brown"
+                                                    ]
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "contains_all": [
+                                            { "source": "d" },
+                                            [
+                                                "red",
+                                                "green",
+                                                "blue"
+                                            ]
+                                        ]
+                                    }
+                                ]
+                            },
+                            { "isnull": [{ "source": "e" }] }
+                        ]
+                    },
+                    {
+                        "=": [
+                            { "source": "e" },
+                            null
+                        ]
+                    }
+                ]
+            });
             expect( query.test( queryable ) ).to.equal( true );
 
-            let query2 = new AlQueryEvaluator({"or":[{"=":[{"source":"a"},false]},{"<":[{"source":"b"},1]},{"=":[{"source":"c"},"snarfblatt"]},{"contains_any":[{"source":"d"},["pink","orange","purple"]]},{"contains_all":[{"source":"d"},["red","green","blurple"]]},{"isnull":[{"source":"a"}]}]});
+            let query2 = new AlQueryEvaluator({
+                "or": [
+                    {
+                        "=": [
+                            { "source": "a" },
+                            false
+                        ]
+                    },
+                    {
+                        "<": [
+                            { "source": "b" },
+                            1
+                        ]
+                    },
+                    {
+                        "=": [
+                            { "source": "c" },
+                            "snarfblatt"
+                        ]
+                    },
+                    {
+                        "contains_any": [
+                            { "source": "d" },
+                            [
+                                "pink",
+                                "orange",
+                                "purple"
+                            ]
+                        ]
+                    },
+                    {
+                        "contains_all": [
+                            { "source": "d" },
+                            [
+                                "red",
+                                "green",
+                                "blurple"
+                            ]
+                        ]
+                    },
+                    { "isnull": [{ "source": "a" }] }
+                ]
+            });
             expect( query2.test( queryable ) ).to.equal( false );
 
         } );
