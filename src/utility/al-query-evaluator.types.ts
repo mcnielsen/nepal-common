@@ -35,9 +35,7 @@ type BaseOp =
 type BaseOps = BaseOp[];
 
 type OpAnd = { and: BaseOps };
-
 type OpOr = { or: BaseOps };
-
 type OpEqual = { '=': OpCompare } ;
 type OpNotEqual = { '!=': OpCompare } ;
 type OpLessThan = { '<': OpCompareNum } ;
