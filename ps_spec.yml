@@ -32,6 +32,7 @@ stages:
             - echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
             - npm whoami
             - |
+              set -ex
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
