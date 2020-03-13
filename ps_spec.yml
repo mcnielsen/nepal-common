@@ -6,8 +6,6 @@ stages:
         name: PR Test
         when:
             - pull_request
-        input:
-            repo: alertlogic/nepal-common
         image: node:13
         compute_size: small
         commands:
