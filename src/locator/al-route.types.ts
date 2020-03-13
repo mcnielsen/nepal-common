@@ -526,7 +526,7 @@ export class AlRoute {
             let externals = this.host.evaluate( condition );
             if ( typeof( externals ) === 'boolean' ) {
                 evaluations.push( externals );
-            } else if ( typeof( externals ) === 'object' && externals.hasOwnProperty("length") ) {
+            } else if ( Array.isArray( externals ) ) {
                 evaluations = evaluations.concat( externals );
             }
         }
