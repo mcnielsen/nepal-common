@@ -21,8 +21,6 @@ stages:
         name: Master Push - Publish
         when:
             - push: ['master']
-        input:
-            repo: alertlogic/nepal-common
         image: node:13
         compute_size: small
         commands:
