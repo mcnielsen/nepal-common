@@ -353,7 +353,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         },
         environment: 'development'
     },
-    
+
     /**
     *  Google Tag Manager Config
     */
