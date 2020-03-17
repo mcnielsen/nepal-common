@@ -353,6 +353,26 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         },
         environment: 'development'
     },
+    
+    /**
+    *  Google Tag Manager Config
+    */
+    {
+        locTypeId: AlLocation.GoogleTagManager,
+        uri: 'https://www.googletagmanager.com/gtag/js',
+        data: {
+            analyticsKey: 'G-4FQL690BZE'
+        },
+        environment: 'integration'
+    },
+    {
+        locTypeId: AlLocation.GoogleTagManager,
+        uri: 'https://www.googletagmanager.com/gtag/js',
+        data: {
+            analyticsKey: 'UA-160153520-1'
+        },
+        environment: 'development'
+    },
 
     /**
     *  Auth0 Configuration
