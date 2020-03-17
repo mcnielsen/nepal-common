@@ -71,6 +71,7 @@ export class AlLocation
     public static SupportPortal     = "cd14:support";
     public static Segment           = "segment";
     public static Auth0             = "auth0";
+    public static GoogleTagManager  = "gtm";
 
     /**
      * Generates location type definitions for residency-specific prod, integration, and dev versions of a UI
