@@ -30,9 +30,11 @@ stages:
               set -ex
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
-              V_VERSION=vPKGVERSION
+              V_VERSION=v$PKGVERSION
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
+              
               git tag -a $V_VERSION -m "$PKGNAME release $V_VERSION" HEAD
+              
               npm install
               
               if [ "$WORDCOUNT" -eq 0  ]; then
