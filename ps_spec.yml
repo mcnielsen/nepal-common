@@ -24,18 +24,22 @@ stages:
         image: node:13
         compute_size: small
         commands:
-            - npm install
-            - echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
-            - npm whoami
             - |
+              echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
+              npm whoami
               set -ex
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
+              V_VERSION=vPKGVERSION
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
+              git tag -a $V_VERSION -m "$PKGNAME release $V_VERSION" HEAD
+              npm install
+              
               if [ "$WORDCOUNT" -eq 0  ]; then
                  echo "PUBLISHING $PKGNAME $PKGVERSION"
                  npm run build
                  npm publish --access public
+                 git push origin $V_VERSION
               else
                  echo "NOT PUBLISHING $PKGNAME $PKGVERSION"
               fi
