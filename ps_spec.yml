@@ -25,9 +25,12 @@ stages:
         compute_size: small
         commands:
             - |
+              set -ex
+              git config --global --add url."git@github.com:".insteadOf "https://github.com/"
+  
               echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
               npm whoami
-              set -ex
+              
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
               V_VERSION=v$PKGVERSION
@@ -40,8 +43,8 @@ stages:
               if [ "$WORDCOUNT" -eq 0  ]; then
                  echo "PUBLISHING $PKGNAME $PKGVERSION"
                  npm run build
-                 npm publish --access public
                  git push origin $V_VERSION
+                 npm publish --access public
               else
                  echo "NOT PUBLISHING $PKGNAME $PKGVERSION"
               fi
