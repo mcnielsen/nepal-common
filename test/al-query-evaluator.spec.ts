@@ -46,7 +46,7 @@ describe( `AlQueryEvaluator`, () => {
         } );
     } );
     afterEach( () => {
-        sinon.reset();
+        sinon.restore();
     } );
     describe( 'test', () => {
         it( 'should evaluate basic queries properly', () => {
@@ -166,6 +166,104 @@ describe( `AlQueryEvaluator`, () => {
             });
             expect( query2.test( queryable ) ).to.equal( false );
 
+        } );
+        it( "should evaluate other equivalence operators", () => {
+            let query = new AlQueryEvaluator({
+                "and": [
+                    {
+                        ">": [
+                            { "source": "a" },
+                            0
+                        ]
+                    },
+                    {
+                        "<": [
+                            { "source": "b" },
+                           0
+                        ]
+                    },
+                    {
+                        ">=": [
+                            { "source": "c" },
+                            0
+                        ]
+                    },
+                    {
+                        "<=": [
+                            { "source": "d" },
+                            0
+                        ]
+                    },
+                    {
+                        "!=": [
+                            { "source": "e" },
+                            0
+                        ]
+                    }
+                ]
+            } );
+            let subject1 = new MockQueryable( {
+                "default": {
+                    "a": 0,
+                    "b": 0,
+                    "c": -1,
+                    "d": 1,
+                    "e": 0,
+                }
+            } );
+            let subject2 = new MockQueryable( {
+                "default": {
+                    "a": 1,
+                    "b": -1,
+                    "c": 1,
+                    "d": -1,
+                    "e": "NaN",
+                }
+            } );
+            expect( query.test( subject1 ) ).to.equal( false );
+            expect( query.test( subject2 ) ).to.equal( true );
+        } );
+
+        it( "should evaluate CONTAINS and IN operators", () => {
+            let query = new AlQueryEvaluator( {
+                "and": [
+                    {
+                        "in": [
+                            { source: "value" },
+                            [ "a", "b", "c" ]
+                        ]
+                    },
+                    {
+                        "contains": [
+                            { source: "list" },
+                            "a"
+                        ]
+                    },
+                    {
+                        not: {
+                            contains: [
+                                { source: "list2" },
+                                "a"
+                            ]
+                        }
+                    }
+                ]
+            } );
+            let subject1 = new MockQueryable( {
+                "default": {
+                    "list": [ "a", "b", "c" ],
+                    "value": "a"
+                }
+            } );
+            let subject2 = new MockQueryable( {
+                "default": {
+                    "list": { "x": true, y: true, z: true },
+                    value: "delta",
+                    "list2": [ "e", "f", "g" ]
+                }
+            } );
+            expect( query.test( subject1 ) ).to.equal( true );
+            expect( query.test( subject2 ) ).to.equal( false );
         } );
     } );
 } );

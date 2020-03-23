@@ -36,6 +36,9 @@ export class MockRoutingHost implements AlRoutingHost {
 
 describe( 'AlRoute', () => {
 
+    beforeEach( () => sinon.restore() );
+    afterEach( () => sinon.restore() );
+
     const fakeEntitlements = {
         'a': true,
         'b': false,
@@ -112,7 +115,6 @@ describe( 'AlRoute', () => {
             route.dispatch();
             expect( dispatchStub.callCount ).to.equal( 1 );
             expect( dispatchStub.args[0][0] ).to.equal( route );
-
             dispatchStub.restore();
         } );
         it("should convert to HREF when `toHref` is called", () => {
@@ -128,13 +130,6 @@ describe( 'AlRoute', () => {
     } );
 
     describe( 'route construction', () => {
-        let warnStub;
-        beforeEach( () => {
-            warnStub = sinon.stub( console, "warn" );
-        } );
-        afterEach( () => {
-            warnStub.restore();
-        } );
         it( 'should evaluate route HREFs properly', () => {
             const menu = new AlRoute( routingHost, {
                 caption: "Test Route",
@@ -196,6 +191,7 @@ describe( 'AlRoute', () => {
             expect( menu.visible ).to.equal( false );
         } );
         it( 'should handle invalid locationIds properly with a warning', () => {
+            let warnStub = sinon.stub( console, "warn" );
             const route = AlRoute.link( routingHost, null, "/#/some/silly/path" );
             expect( warnStub.callCount ).to.equal( 1 );
         } );
@@ -214,6 +210,7 @@ describe( 'AlRoute', () => {
             expect( menu.visible ).to.equal( false );
         } );
         it( 'should handle invalid locations properly', () => {
+            let warnStub = sinon.stub( console, "warn" );
             const menu = new AlRoute( routingHost, {
                 caption: "Test Route",
                 action: {
@@ -227,6 +224,7 @@ describe( 'AlRoute', () => {
             expect( menu.href ).to.equal( undefined );
             expect( menu.visible ).to.equal( false );
             expect( warnStub.callCount ).to.equal( 1 );
+            warnStub.restore();
         } );
     } );
 
@@ -415,7 +413,6 @@ describe( 'AlRoute', () => {
             expect( saveStub.callCount ).to.equal( 1 );
             expect( saveStub.args[0][0] ).to.equal( "my-bookmark-id" );
             expect( saveStub.args[0][1] ).to.equal( route );
-
             saveStub.restore();
         } );
     } );
