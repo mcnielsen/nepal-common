@@ -20,7 +20,7 @@ export class AlGlobalizer
      */
     public static expose( name:string, data:{[key:string]:any} = {} ) {
         let pathParts = name.split(".");
-        let target = typeof( window ) === 'undefined' ? AlGlobalizer.prototype : <any>window;
+        let target = typeof( window ) !== 'undefined' ? <any>window : /* istanbul ignore next */ AlGlobalizer.prototype;
         for ( let i = 0; i < pathParts.length; i++ ) {
             let pathPart = pathParts[i];
             if ( typeof( target[pathPart] ) !== 'object' ) {
@@ -48,8 +48,9 @@ export class AlGlobalizer
                 console.warn(`Warning: the global service ${name} has already been instantiated.  This probably indicates a packaging or bundling problem of some sort.` );
             } else if ( typeof( collisionHandling ) === 'string' ) {
                 throw new Error( collisionHandling );
+            } else {
+                return storage[name];
             }
-            return storage[name];
         }
         storage[name] = factory();
         return storage[name];

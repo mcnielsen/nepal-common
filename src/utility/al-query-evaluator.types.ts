@@ -26,7 +26,7 @@ type BaseOp =
     | OpGreaterThan
     | OpGreaterThanEqual
     | OpIn
-    | OpNotIn
+    | OpNot
     | OpIsNull
     | OpContains
     | OpContainsAny
@@ -36,17 +36,17 @@ type BaseOps = BaseOp[];
 
 type OpAnd = { and: BaseOps };
 type OpOr = { or: BaseOps };
-type OpEqual = { '=': OpCompare } ;
-type OpNotEqual = { '!=': OpCompare } ;
-type OpLessThan = { '<': OpCompareNum } ;
-type OpLessThanEqual = { '<=': OpCompareNum } ;
-type OpGreaterThan = { '>': OpCompareNum } ;
-type OpGreaterThanEqual = { '>=': OpCompareNum } ;
-type OpIn = { 'in': [OpCompare, BaseValue] } ;
-type OpNotIn = { 'not': BaseOp } ;
-type OpIsNull = { 'isnull': [Descriptor] } ;
-type OpContains = { 'contains': [OpCompare, BaseValue] } ;
-type OpContainsAny = { 'contains_any': [Descriptor, any] } ;
+type OpEqual = { '=': OpCompare };
+type OpNotEqual = { '!=': OpCompare };
+type OpLessThan = { '<': OpCompareNum };
+type OpLessThanEqual = { '<=': OpCompareNum };
+type OpGreaterThan = { '>': OpCompareNum };
+type OpGreaterThanEqual = { '>=': OpCompareNum };
+type OpIn = { 'in': [ Descriptor, BaseValue[] ] };
+type OpNot = { 'not': BaseOp };
+type OpIsNull = { 'isnull': [Descriptor] };
+type OpContains = { 'contains': OpCompare };
+type OpContainsAny = { 'contains_any': [Descriptor, any] };
 type OpContainsAll = { 'contains_all': [Descriptor, any] };
 
 export class AlQueryEvaluator
@@ -184,7 +184,6 @@ export class AlQueryEvaluator
         this.assert( op, Array.isArray(op) && op.length === 1, "`isnull` descriptor should have one element" );
         const property = this.normalizeProperty( op[0] );
         const actualValue = subject.getPropertyValue( property.id, property.ns );
-        console.log("Actual value: ", actualValue );
         return ( actualValue === null || actualValue === undefined );
     }
 
@@ -192,6 +191,9 @@ export class AlQueryEvaluator
         this.assert( op, Array.isArray(op) && op.length === 2, "`contains` descriptor should have two elements" );
         const property = this.normalizeProperty( op[0] );
         const actualValues = subject.getPropertyValue( property.id, property.ns );
+        if ( actualValues === null || actualValues === undefined ) {
+            return false;
+        }
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains` operator must reference a property that is an object or an array" );
         const testValue = op[1];
         return actualValues.includes( testValue );
@@ -201,6 +203,9 @@ export class AlQueryEvaluator
         this.assert( op, Array.isArray(op) && op.length === 2, "`contains_any` descriptor should have two elements" );
         const property = this.normalizeProperty( op[0] );
         const actualValues = subject.getPropertyValue( property.id, property.ns );
+        if ( actualValues === null || actualValues === undefined ) {
+            return false;
+        }
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains_any` operator must reference a property that is an object or an array" );
         const testValues = op[1];
         this.assert( testValues, Array.isArray(testValues), "`contains_any` values clause must be an array" );
@@ -217,6 +222,9 @@ export class AlQueryEvaluator
         this.assert( op, Array.isArray(op) && op.length === 2, "`contains_all` descriptor should have two elements" );
         const property = this.normalizeProperty( op[0] );
         const actualValues = subject.getPropertyValue( property.id, property.ns );
+        if ( actualValues === null || actualValues === undefined ) {
+            return false;
+        }
         this.assert( actualValues, typeof( actualValues ) === 'object', "`contains_all` operator must reference a property that is an object or an array" );
         const testValues = op[1];
         this.assert( testValues, Array.isArray(testValues), "`contains_all` values clause must be an array" );

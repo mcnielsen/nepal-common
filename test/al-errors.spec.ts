@@ -8,12 +8,13 @@ import {
     AlUnimplementedMethodError,
     AlNotFoundError,
     AlBadRequestError,
+    AlBadGatewayError
 } from '../src/errors';
 import * as sinon from 'sinon';
 
 describe( `Errors`, () => {
     afterEach( () => {
-        sinon.reset();
+        sinon.restore();
     } );
     describe( 'AlAPIServerError', () => {
 
@@ -86,6 +87,14 @@ describe( `Errors`, () => {
 
             expect( error.httpResponseCode ).to.equal( 404 );
             expect( error.message ).to.be.a("string" );
+        } );
+    } );
+
+    describe( `AlBadGatewayError`, () => {
+        it( 'should instantiate as expected', () => {
+            const error = new AlBadGatewayError( "Sorry, Bob, someone else messed up.", "AIMS", { anything: true } );
+            expect( error.httpResponseCode ).to.equal( 502 );
+            expect( error.message ).to.be.a("string");
         } );
     } );
 

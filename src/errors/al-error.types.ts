@@ -1,5 +1,7 @@
 /**
  * A collection of classed error types.
+ * Please note that the widespread use of istanbul ignore directives here is because of a known issue with istanbul coverage calculations for ES5 targets:
+ * see [this issue](https://github.com/gotwarlost/istanbul/issues/690) for reference.
  *
  * Author: Kevin Nielsen <knielsen@alertlogic.com>
  * Copyright 2019 Alert Logic, Inc.
@@ -35,6 +37,7 @@ export class AlAPIServerError extends AlBaseError
     constructor( message:string,
                  public serviceName:string,
                  public statusCode:number ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -54,6 +57,7 @@ export class AlAPIServerError extends AlBaseError
 export class AlResponseValidationError extends AlBaseError
 {
     constructor( message:string, public errors:any[] = [] ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -75,6 +79,7 @@ export class AlBadRequestError extends AlBaseError
                  public inputType?:string,
                  public inputProperty?:string,
                  public description?:string ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -92,6 +97,7 @@ export class AlUnauthenticatedRequestError extends AlBaseError
     public httpResponseCode:number = 401;
     constructor( message: string,
                  public authority:string ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -109,6 +115,7 @@ export class AlUnauthorizedRequestError extends AlBaseError
     public httpResponseCode:number = 403;
     constructor( message: string,
                  public resource:string ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -124,6 +131,7 @@ export class AlUnimplementedMethodError extends AlBaseError
 {
     public httpResponseCode:number = 501;
     constructor( message:string ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
@@ -138,6 +146,7 @@ export class AlBadGatewayError extends AlBaseError
     public httpResponseCode:number = 502;
     /* tslint:disable:no-unused-variable */
     constructor( message:string, public upstreamService:string, public requestDescriptor:unknown ) {
+        /* istanbul ignore next */
         super(message);
     }
 }
@@ -153,6 +162,7 @@ export class AlNotFoundError extends AlBaseError
 {
     public httpResponseCode:number = 404;
     constructor( message:string ) {
+        /* istanbul ignore next */
         super( message );
     }
 }
