@@ -361,7 +361,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
         locTypeId: AlLocation.GoogleTagManager,
         uri: 'https://www.googletagmanager.com/gtag/js',
         data: {
-            analyticsKey: ''
+            analyticsKey: 'UA-17359898-12'
         },
         environment: 'production|production-staging'
     },
