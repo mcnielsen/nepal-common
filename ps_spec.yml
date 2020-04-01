@@ -27,7 +27,9 @@ stages:
             - |
               set -ex
               #git config --global --add url."git@github.com:".insteadOf "https://github.com/"
-  
+              
+              echo $NPM_TOKEN | base64
+              
               echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
               npm whoami
               
