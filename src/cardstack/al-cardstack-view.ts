@@ -52,6 +52,13 @@ export abstract class AlCardstackView< EntityType=any,
         properties: {}
     };
 
+    /**
+     * Allows you to set the filters to be displayed, the property is the name of the filter that is obtained
+     * from the "filterableBy" property of the characteristics object.
+     * The value is an array with the values (ids) that you want to display.
+     */
+    public reduceFilters: {[property:string]:string[]} = {};
+
     constructor( characteristics?:CharacteristicsType ) {
         if ( characteristics ) {
             this.normalizeCharacteristics( characteristics );
@@ -69,6 +76,7 @@ export abstract class AlCardstackView< EntityType=any,
             }
             const characteristics = await this.generateCharacteristics();
             this.normalizeCharacteristics( characteristics );
+            this.fillPropertiesReduceFilters();
         }
         let entities = await this.fetchData( true );
 
@@ -507,5 +515,19 @@ export abstract class AlCardstackView< EntityType=any,
             }
         } );
         return description;
+    }
+
+    /**
+     * Fill the property name of the variable reduceFilter with filterable fields
+     */
+    private fillPropertiesReduceFilters(): void {
+        if(!this.characteristics){
+            throw new Error("characteristics must be defined");
+        }
+        this.characteristics.filterableBy.forEach((filter) => {
+            if(typeof filter === 'string'){
+                this.reduceFilters[filter] = [];
+            }
+        });
     }
 }
