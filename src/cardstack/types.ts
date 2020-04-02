@@ -59,6 +59,9 @@ export interface AlCardstackPropertyDescriptor
     //  The user-friendly plural name
     captionPlural:string;
 
+    // The user-friendly description of the cardstack
+    description?:string;
+
     //  An array of possible values the property may have (value/caption pairs, plus some miscellaneous state properties)
     values: AlCardstackValueDescriptor[];
 
