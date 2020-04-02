@@ -10,9 +10,11 @@ stages:
         compute_size: small
         commands:
             - npm install
-#            - npm install puppeteer
-#            - export CHROME_BIN=$(node -e "console.log(require('puppeteer').executablePath())")
-#            - npm run test
+            - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+            - wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+            - apt-get update && apt-get -y install google-chrome-stable
+            - export CHROME_BIN='/usr/bin/google-chrome'
+            - npm run test
             - npm run lint
             - npm run build
             - npx madge --circular --extensions ts --ts-config tsconfig.json src
