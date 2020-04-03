@@ -1,10 +1,10 @@
 import {
+    AlCardstackAggregations,
+    AlCardstackCharacteristics,
+    AlCardstackItem,
+    AlCardstackItemProperties,
     AlCardstackPropertyDescriptor,
     AlCardstackValueDescriptor,
-    AlCardstackCharacteristics,
-    AlCardstackAggregations,
-    AlCardstackItemProperties,
-    AlCardstackItem,
 } from './types';
 
 /**
@@ -35,7 +35,7 @@ export abstract class AlCardstackView< EntityType=any,
     public cards:AlCardstackItem<EntityType>[]                                  =   [];         //  All cards loaded, both visible and invisible, in current sort order
     public visibleCards:number                                                  =   0;          //  Number of cards currently visible in view
 
-    public textFilter:      RegExp|null                                         =   null;       //  Regular expression to filter results with (deprecated?)
+    public textFilter:      string|RegExp|null                                         =   null;       //  Regular expression to filter results with (deprecated?)
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;       //  Grouping property
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;       //  Sortation property
     public sortOrder:       string                                              =   "ASC";      //  Sortation direction, either "ASC" or "DESC".  Yes, "sortation" is a real word ;-)
@@ -202,7 +202,7 @@ export abstract class AlCardstackView< EntityType=any,
      *  Applies a textual search filter to all properties/entities in the current list, or clears the current filter if `filterPattern` is null.
      *  This should cause the `visibleItem` count to be recalculated, possibly triggering a load of further pages of data.
      */
-    public applyTextFilter( filterPattern:RegExp|null ):boolean {
+    public applyTextFilter( filterPattern:string|RegExp|null ):boolean {
         this.textFilter = filterPattern;
         this.applyFiltersAndSearch();
         return true;
@@ -383,53 +383,66 @@ export abstract class AlCardstackView< EntityType=any,
     /**
      *  Method to determine visibility of an individual card item based on the current search text
      */
-    protected evaluateCardVisibilityBySearch( card:AlCardstackItem<EntityType,PropertyType>, search: RegExp|null):boolean {
+    protected evaluateCardVisibilityBySearch(
+        card: AlCardstackItem<EntityType, PropertyType>,
+        search: string | RegExp | null
+    ): boolean {
         if (search === null) {
             return true;
         }
 
-        let visible = false;
-        if(this.characteristics && this.characteristics.searchableBy) {
-            if (this.characteristics.searchableBy.length === 0 ) {
-                return true;
+
+        // property search
+        // prop=value
+        if (typeof search === "string" && search.includes("=")) {
+            const lsSource = search.split("=");
+            const property = lsSource[0];
+            const value = lsSource[1].toLowerCase();
+            if (property === '' || value === '') {
+                return false;
             }
-            if(search.source.indexOf("=") !== -1){
-                const lsSource = search.source.split("=");
-                const property = lsSource[0];
-                const value = lsSource[1].toLowerCase();
-                if(property === '' || value === ''){
-                    return false;
-                }
-                if(!card.properties.hasOwnProperty(property)){
-                    return false;
-                }
-                const cardPropValue = ( card.properties as any )[property].toLowerCase();
-                if (value.indexOf(cardPropValue) !== -1) {
-                    return true;
-                }
-            }else{
-                this.characteristics.searchableBy.find( (property:string) => {
-                    if ( ! card.properties.hasOwnProperty( property ) || !( card.properties as any)[property]) {
-                        return false;
+            if (!card.properties.hasOwnProperty(property)) {
+                return false;
+            }
+            const cardPropValue = (card.properties as any)[property].toLowerCase();
+            return value.includes(cardPropValue);
+        }
+
+
+        if (!this.characteristics || !this.characteristics.searchableBy) {
+            return false;
+        }
+
+        if (this.characteristics.searchableBy.length === 0) {
+            return true;
+        }
+
+        return this.characteristics.searchableBy.some((property: string) => {
+            if (!card.properties.hasOwnProperty(property) || !(card.properties as any)[property]) {
+                return false;
+            }
+            const cardPropValue = (card.properties as any)[property];
+            if (Array.isArray(cardPropValue)) {
+                const matches = cardPropValue.find((value) => {
+                    if (search instanceof RegExp) {
+                        return search.test(value);
                     }
-                    let cardPropValue = ( card.properties as any )[property];
-                    if (cardPropValue instanceof Array) {
-                        const matches = cardPropValue.find((value) => search.test(value));
-                        if (matches) {
-                            visible = true;
-                            return true;
-                        }
-                    } else {
-                        if (search.test(cardPropValue)) {
-                            visible = true;
-                            return true;
-                        }
+                    if (typeof search === "string") {
+                        return value.includes(search);
                     }
+                    console.error("Search should be a string or regex.");
                     return false;
                 });
+                if (matches) {
+                    return true;
+                }
+            } else if ( search instanceof RegExp && search.test(cardPropValue)) {
+                return true;
+            } else if ( typeof search === "string" && cardPropValue.includes(search)) {
+                return true;
             }
-        }
-        return visible;
+            return false;
+        });
     }
 
     protected evaluateCardState( card:AlCardstackItem<EntityType,PropertyType> ):AlCardstackItem<EntityType,PropertyType> {
