@@ -28,17 +28,24 @@ stages:
         commands:
             - |
               set -ex
+              
               printenv
+
+              if [ -z "$NPM_TOKEN" ]
+              then
+                  echo "\$NPM_TOKEN is empty"
+                  exit 1
+              fi
+              
               #git config --global --add url."git@github.com:".insteadOf "https://github.com/"
+
               
-              echo $NPM_TOKEN | base64
-              
-              echo //registry.npmjs.org/:_authToken=$NPM_TOKEN > .npmrc
+              echo //registry.npmjs.org/:_authToken="$NPM_TOKEN" > .npmrc
               npm whoami
               
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
-              V_VERSION=v$PKGVERSION
+              #V_VERSION=v$PKGVERSION
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
               
               #git tag -a $V_VERSION -m "$PKGNAME release $V_VERSION" HEAD
