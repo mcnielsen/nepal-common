@@ -45,7 +45,7 @@ export abstract class AlCardstackView< EntityType=any,
     public activeFilters:   {[property:string]:{[valueKey:string]:AlCardstackValueDescriptor}} = {};
 
     //  If defined, indicates the view has failed to load and optionally provides description and details of error
-    public error?: { description?:string; details?:any; }                       =   undefined;
+    public error?:string|Error;
 
     //  Aggregation data
     public aggregations:AlCardstackAggregations = {
@@ -70,38 +70,44 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public async start() {
         this.loading = true;
-        if ( ! this.characteristics ) {
-            if ( ! this.generateCharacteristics ) {
-                throw new Error("Usage error: AlCardstackView extensions must either be constructed with characteristics or provide a `generateCharacteristics` method." );
+        try {
+            if ( ! this.characteristics ) {
+                if ( ! this.generateCharacteristics ) {
+                    throw new Error("Usage error: AlCardstackView extensions must either be constructed with characteristics or provide a `generateCharacteristics` method." );
+                }
+                const characteristics = await this.generateCharacteristics();
+                this.normalizeCharacteristics( characteristics );
+                this.fillPropertiesReduceFilters();
             }
-            const characteristics = await this.generateCharacteristics();
-            this.normalizeCharacteristics( characteristics );
-            this.fillPropertiesReduceFilters();
-        }
-        let entities = await this.fetchData( true );
+            let entities = await this.fetchData( true );
 
-        this.rawCards = [];
-        this.filteredCards = [];
-        this.cards = [];
+            this.rawCards = [];
+            this.filteredCards = [];
+            this.cards = [];
 
-        let ingestedCards = this.ingest( entities );
-        this.rawCards = ingestedCards;
-        this.filteredCards = ingestedCards;
+            let ingestedCards = this.ingest( entities );
+            this.rawCards = ingestedCards;
+            this.filteredCards = ingestedCards;
 
-        // if we have pagination enable just load a section of data
-        if( this.localPagination ) {
-            this.applyFiltersAndSearch();
-        } else {
-            // if we dont have pagination enable load all data
-            this.addNextSection(ingestedCards);
-        }
+            // if we have pagination enable just load a section of data
+            if( this.localPagination ) {
+                this.applyFiltersAndSearch();
+            } else {
+                // if we dont have pagination enable load all data
+                this.addNextSection(ingestedCards);
+            }
 
-        if ( this.verbose ) {
-            console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
-        }
-        this.loading = false;
-        if(this.onCardsChanged){
-            this.onCardsChanged();
+            if ( this.verbose ) {
+                console.log( `After start: ${this.describeFilters()} (${this.visibleCards} visible)` );
+            }
+            this.loading = false;
+            if(this.onCardsChanged){
+                this.onCardsChanged();
+            }
+        } catch( error ) {
+            console.error("A fatal error prevented this view from starting!", error );
+            this.error = error;
+            this.loading = false;
         }
     }
 
@@ -120,28 +126,34 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public async continue() {
         this.loading = true;
-        let entities = [];
-        let cardsSection = [];
+        try {
+            let entities = [];
+            let cardsSection = [];
 
-        if (this.localPagination) {
-            cardsSection = this.filteredCards.slice(this.cards.length,  this.cards.length + this.itemsPerPage);
-            this.loadedPages++;
-            this.remainingPages--;
-        } else {
-            entities = await this.fetchData( false );
-            cardsSection = this.ingest( entities );
-        }
+            if (this.localPagination) {
+                cardsSection = this.filteredCards.slice(this.cards.length,  this.cards.length + this.itemsPerPage);
+                this.loadedPages++;
+                this.remainingPages--;
+            } else {
+                entities = await this.fetchData( false );
+                cardsSection = this.ingest( entities );
+            }
 
-        this.addNextSection(cardsSection);
+            this.addNextSection(cardsSection);
 
-        if ( this.verbose ) {
-            console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
+            if ( this.verbose ) {
+                console.log( `After continue: ${this.describeFilters()} (${this.visibleCards} visible), with ${this.remainingPages} page(s) of data remaining.` );
+            }
+            if ( this.characteristics && this.characteristics.greedyConsumer && this.remainingPages > 0 ) {
+                //  In greedy consumer mode, we essentially retrieve the entire dataset sequentially as part of the load cycle
+                await this.continue();
+            }
+            this.loading = false;
+        } catch( e ) {
+            console.error("A fatal error prevented this view from continuing!", e );
+            this.loading = false;
+            this.error = e;
         }
-        if ( this.characteristics && this.characteristics.greedyConsumer && this.remainingPages > 0 ) {
-            //  In greedy consumer mode, we essentially retrieve the entire dataset sequentially as part of the load cycle
-            await this.continue();
-        }
-        this.loading = false;
     }
 
     /**
