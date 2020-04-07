@@ -77,7 +77,9 @@ export abstract class AlCardstackView< EntityType=any,
                 }
                 const characteristics = await this.generateCharacteristics();
                 this.normalizeCharacteristics( characteristics );
-                this.fillPropertiesReduceFilters();
+                if (this.localPagination) {
+                    this.fillPropertiesReduceFilters();
+                }
             }
             let entities = await this.fetchData( true );
 
