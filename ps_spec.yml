@@ -58,13 +58,7 @@ stages:
               curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.2
               GITHUB_TOKEN=$ALPS_GH_TOKEN
 
-              echo "Continuous Delivery release for ${PKGNAME}@${PKGVERSION}" > release_notes.txt
-
-              echo "CREATING RELEASE FOR ${PKGNAME}@${PKGVERSION}"
-              # Create a GitHub Release from master using release notes from release_notes.txt file
-              # See: https://hub.github.com/hub-release.1.html
-              bin/hub release create -F release_notes.txt -t $CODEBUILD_SOURCE_VERSION $V_VERSION
-              # End release section
+            
               
               npm install
               
@@ -73,6 +67,15 @@ stages:
                  npm run build
                 # git push origin $V_VERSION
                  npm publish --access public
+                 
+                 echo "Continuous Delivery release for ${PKGNAME}@${PKGVERSION}" > release_notes.txt
+
+                 echo "CREATING RELEASE FOR ${PKGNAME}@${PKGVERSION}"
+                 # Create a GitHub Release from master using release notes from release_notes.txt file
+                 # See: https://hub.github.com/hub-release.1.html
+                 bin/hub release create -F release_notes.txt -t $CODEBUILD_SOURCE_VERSION $V_VERSION
+                 # End release section
+              
               else
                  echo "NOT PUBLISHING $PKGNAME $PKGVERSION"
               fi
