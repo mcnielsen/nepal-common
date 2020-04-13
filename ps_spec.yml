@@ -49,10 +49,22 @@ stages:
               
               PKGNAME=$(node -e 'console.log(require("./package.json").name)')
               PKGVERSION=$(node -e 'console.log(require("./package.json").version)')
-              #V_VERSION=v$PKGVERSION
+              V_VERSION=v$PKGVERSION
               WORDCOUNT=$(npm view "${PKGNAME}@${PKGVERSION}" | wc -c)
               
               #git tag -a $V_VERSION -m "$PKGNAME release $V_VERSION" HEAD
+
+              # Release section
+              curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.2
+              GITHUB_TOKEN=$ALPS_GH_TOKEN
+
+              echo "Continuous Delivery release for ${PKGNAME}@${PKGVERSION}" > release_notes.txt
+
+              echo "CREATING RELEASE FOR ${PKGNAME}@${PKGVERSION}"
+              # Create a GitHub Release from master using release notes from release_notes.txt file
+              # See: https://hub.github.com/hub-release.1.html
+              bin/hub release create -F release_notes.txt -t $CODEBUILD_SOURCE_VERSION $V_VERSION
+              # End release section
               
               npm install
               
