@@ -239,22 +239,30 @@ export abstract class AlCardstackView< EntityType=any,
      */
     public applySortBy( descriptor:AlCardstackPropertyDescriptor, order:string = "DESC" ):boolean {
         this.rawCards = this.rawCards.sort( ( a, b ) => {
-            let pa = a.properties;
-            let pb = b.properties;
-            if ( typeof( pa[descriptor.property] ) === 'string' && typeof( pb[descriptor.property] ) === 'string' ) {
+            let pa = a.properties[descriptor.property];
+            let pb = b.properties[descriptor.property];
+            if ( typeof( pa ) === 'string' || typeof( pb ) === 'string' ) {
+                pa = pa ? pa: '';
+                pb = pb ? pb : '';
                 if ( order === 'ASC' ) {
-                    return pa[descriptor.property].localeCompare( pb[descriptor.property] );
+                    return pa.localeCompare( pb );
                 } else {
-                    return pb[descriptor.property].localeCompare( pa[descriptor.property] );
+                    return pb.localeCompare( pa );
                 }
-            } else if ( typeof( pa[descriptor.property] ) === 'number' && typeof( pb[descriptor.property] ) === 'number' ) {
+            } else if ( typeof( pa ) === 'number' || typeof( pb ) === 'number' ) {
+                a = pa ? pa: 0;
+                pb = pb ? pb : 0;
                 if ( order === 'ASC' ) {
-                    return pa[descriptor.property] - pb[descriptor.property];
+                    return pa - pb;
                 } else {
-                    return pb[descriptor.property] - pa[descriptor.property];
+                    return pb - pa;
                 }
             } else {
-                throw new Error("Inconsistent property normalization: properties are not string or number, or are mixed." );
+                if ( typeof( pa ) === 'undefined' && typeof( pb ) === 'undefined' ) {
+                    return 0;
+                } else {
+                    throw new Error("Inconsistent property normalization: properties are not string or number, or are mixed." );
+                }
             }
         } );
         this.applyFiltersAndSearch();
