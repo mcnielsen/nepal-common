@@ -38,7 +38,7 @@ export abstract class AlCardstackView< EntityType=any,
     public textFilter:      string|RegExp|null                                         =   null;       //  Regular expression to filter results with (deprecated?)
     public groupingBy:      AlCardstackPropertyDescriptor|null                  =   null;       //  Grouping property
     public sortingBy:       AlCardstackPropertyDescriptor|null                  =   null;       //  Sortation property
-    public sortOrder:       string                                              =   "ASC";      //  Sortation direction, either "ASC" or "DESC".  Yes, "sortation" is a real word ;-)
+    public sortOrder:       'asc'|'desc'                                        =   "asc";      //  Sortation direction, either "asc" or "desc".  Yes, "sortation" is a real word ;-)
     public dateRange:       Date[]                                              =   [];
     public checked: boolean = false;
     //  Defines which filters are currently "active"
@@ -93,7 +93,11 @@ export abstract class AlCardstackView< EntityType=any,
 
             // if we have pagination enable just load a section of data
             if( this.localPagination ) {
-                this.applyFiltersAndSearch();
+                if(this.sortingBy && this.sortOrder) {
+                    this.applySortBy(this.sortingBy,  this.sortOrder );
+                } else {
+                    this.applyFiltersAndSearch();
+                }
             } else {
                 // if we dont have pagination enable load all data
                 this.addNextSection(ingestedCards);
@@ -237,14 +241,17 @@ export abstract class AlCardstackView< EntityType=any,
      *  This is the default implementation, which can be called if the deriving class doesn't implement OR wants to call into the super class.
      *  Returning `true` indicates that the current list of items needs to be flushed and data retrieval should start from scratch.
      */
-    public applySortBy( descriptor:AlCardstackPropertyDescriptor, order:string = "DESC" ):boolean {
+    public applySortBy( descriptor:AlCardstackPropertyDescriptor, order:string = "desc" ):boolean {
+        this.sortingBy = descriptor;
+        this.sortOrder = order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
         this.rawCards = this.rawCards.sort( ( a, b ) => {
             let pa = a.properties[descriptor.property];
             let pb = b.properties[descriptor.property];
             if ( typeof( pa ) === 'string' || typeof( pb ) === 'string' ) {
                 pa = pa ? pa: '';
                 pb = pb ? pb : '';
-                if ( order === 'ASC' ) {
+                if ( order === 'asc' ) {
                     return pa.localeCompare( pb );
                 } else {
                     return pb.localeCompare( pa );
@@ -252,7 +259,7 @@ export abstract class AlCardstackView< EntityType=any,
             } else if ( typeof( pa ) === 'number' || typeof( pb ) === 'number' ) {
                 a = pa ? pa: 0;
                 pb = pb ? pb : 0;
-                if ( order === 'ASC' ) {
+                if ( order === 'asc' ) {
                     return pa - pb;
                 } else {
                     return pb - pa;
