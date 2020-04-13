@@ -250,7 +250,7 @@ describe( 'AlCardstackView', () => {
         } );
         it( 'should sort numeric properties in the expected way', () => {
             let date = stack.getProperty( "date_created" );
-            stack.applySortBy( date, 'ASC' );
+            stack.applySortBy( date, 'asc' );
             let last = 0;
             for ( let i = 0; i < stack.cards.length; i++ ) {
                 let card = stack.cards[i];
@@ -258,7 +258,7 @@ describe( 'AlCardstackView', () => {
                 last = card.properties.date_created;
             }
 
-            stack.applySortBy( date, 'DESC' );
+            stack.applySortBy( date, 'desc' );
             for ( let i = 0; i < stack.cards.length; i++ ) {
                 let card = stack.cards[i];
                 expect( card.properties.date_created ).to.be.lte( last );
